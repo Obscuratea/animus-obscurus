@@ -105,6 +105,11 @@
   --well: var(--mat-surface-container-highest); --line: var(--mat-outline-variant); --ink: var(--mat-on-surface); --dim: var(--mat-on-surface-variant);
   --accent: var(--mat-accent); --on-accent: var(--mat-on-primary); --tone: var(--mat-primary-container); --on-tone: var(--mat-on-primary-container);
   --grad: linear-gradient(135deg, var(--mat-gradient-start), var(--mat-gradient-end));
+  /* Coloured buttons are gradients; a theme can set these to flat colours to turn that off. */
+  --fill-tone: linear-gradient(135deg, var(--tone), color-mix(in srgb, var(--tone) 68%, var(--mat-gradient-end)));
+  --fill-accent: var(--grad);
+  --fill-tert: linear-gradient(135deg, var(--mat-tertiary-container), color-mix(in srgb, var(--mat-tertiary-container) 68%, var(--mat-tertiary)));
+  --fill-tert-strong: linear-gradient(135deg, var(--mat-tertiary), color-mix(in srgb, var(--mat-tertiary) 70%, var(--mat-gradient-start)));
   --warm: #ffc06a; --on-warm: #3a2400; --danger: #ff8279;
   --mono: var(--mat-font), system-ui, sans-serif; --sans: var(--mat-font), system-ui, sans-serif;
   --glass: color-mix(in srgb, var(--mat-surface-container) 78%, transparent);
@@ -155,7 +160,7 @@ form.add button { background: var(--grad); color: var(--on-accent); font-weight:
 .bar button { font: 500 13px var(--sans); }
 .slot { display: contents; }
 .bar button.dd { width: auto; gap: 10px; padding: 9px 14px 9px 16px; }
-.bar button.dd.on, button.tagbtn.on { background: var(--tone); color: var(--on-tone); }
+.bar button.dd.on, button.tagbtn.on { background: var(--fill-tone); color: var(--on-tone); }
 .bar .clear { color: var(--dim); }
 .shelf { margin-bottom: 10px; padding: 14px 16px; border-radius: 22px; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; max-height: 232px; overflow-y: auto; }
@@ -168,7 +173,7 @@ form.add button { background: var(--grad); color: var(--on-accent); font-weight:
 .tabs { display: flex; width: 100%; gap: 2px; padding: 3px; background: var(--panel); border-radius: 999px; flex-wrap: wrap; }
 .tabs button { background: none; font: 500 13px var(--sans); color: var(--dim); padding: 7px 16px; }
 .tabs button:hover { background: var(--raised); }
-.tabs button.airing-tab { background: var(--mat-tertiary-container); color: var(--mat-on-tertiary-container); font-weight: 600; margin-left: auto; }
+.tabs button.airing-tab { background: var(--fill-tert); color: var(--mat-on-tertiary-container); font-weight: 600; margin-left: auto; }
 .tabs button.airing-tab:hover { background: color-mix(in srgb, var(--mat-tertiary-container) 70%, var(--mat-tertiary)); }
 
 .tabs button[aria-pressed=true] { color: var(--on-tone); }
@@ -198,16 +203,16 @@ a.name:hover { color: var(--accent); }
 .ctrl { display: flex; gap: 6px; margin-top: auto; }
 .ctrl > * { flex: 1; min-width: 0; }
 .ctrl button, .ctrl a.play { width: 100%; height: 100%; padding: 7px 0; font: 600 13px var(--sans); text-align: center; }
-.blk { background: var(--tone); color: var(--on-tone); font-weight: 600; border-radius: 999px; }
+.blk { background: var(--fill-tone); color: var(--on-tone); font-weight: 600; border-radius: 999px; }
 a.play { display: flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--raised); color: var(--ink); text-decoration: none; transition: background .15s; }
-a.play:hover { background: var(--accent); color: var(--on-accent); }
+a.play:hover { background: var(--fill-accent); color: var(--on-accent); }
 a.play[aria-disabled=true] { color: var(--dim); pointer-events: none; }
 .icon { color: var(--dim); }
 .wide { width: 100%; padding: 7px 12px; font: 500 13px var(--sans); }
 button.wide:hover { background: color-mix(in srgb, var(--danger) 25%, var(--raised)); color: var(--danger); }
 button.dd { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 7px 8px 7px 14px; font: 500 13px var(--sans); text-align: left; }
 button.dd .caret { color: var(--dim); font-size: 12px; transition: transform .15s; }
-button.dd[aria-expanded=true] { background: var(--tone); color: var(--on-tone); }
+button.dd[aria-expanded=true] { background: var(--fill-tone); color: var(--on-tone); }
 button.dd[aria-expanded=true] .caret { transform: rotate(180deg); color: inherit; }
 .menu { position: fixed; z-index: 20; padding: 6px; border-radius: 18px; font: 500 13px var(--sans); transform-origin: top; animation: menuIn .12s ease-out;
   background: color-mix(in srgb, var(--mat-surface-container-high) 94%, transparent); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
@@ -216,17 +221,18 @@ button.dd[aria-expanded=true] .caret { transform: rotate(180deg); color: inherit
 .menu.big { width: 300px; padding: 10px; }
 .menu.big .jump { position: sticky; top: -10px; z-index: 1; margin: -10px -10px 0; padding: 10px 10px 6px; background: var(--raised); border-radius: 18px 18px 0 0; }
 .menu.big .jump input { width: 100%; background: var(--well); border: 0; border-radius: 999px; padding: 9px 16px; outline: none; font: 500 13px var(--sans); color: var(--ink); }
+.menu.big .jump .gojump { width: 100%; margin-top: 6px; padding: 8px 12px; border: 0; border-radius: 999px; background: var(--grad); color: var(--mat-on-primary); font: 700 13px var(--sans); cursor: pointer; }
 .menu.big .jump input:focus { box-shadow: 0 0 0 2px var(--accent); }
 .menu.big .opt, .menu.big .ghead { padding: 8px 12px; border-radius: 12px; cursor: pointer; margin-top: 4px; color: var(--ink); }
 .menu.big .opt:hover, .menu.big .ghead:hover { background: var(--raised); }
-.menu.big .opt.sel, .menu.big .ghead.here { background: var(--tone); color: var(--on-tone); font-weight: 600; }
+.menu.big .opt.sel, .menu.big .ghead.here { background: var(--fill-tone); color: var(--on-tone); font-weight: 600; }
 .menu.big .ghead::after { content: "▾"; float: right; color: var(--dim); }
 .menu.big .ghead[aria-expanded=true]::after { content: "▴"; }
 .menu.big .ggrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 6px 2px 4px; }
 .menu.big .ggrid[hidden] { display: none; }
 .menu.big .ggrid button { border: 0; background: var(--raised); border-radius: 999px; padding: 6px 0; font: 500 12px var(--sans); color: var(--ink); cursor: pointer; }
-.menu.big .ggrid button:hover { background: var(--accent); color: var(--on-accent); }
-.menu.big .ggrid button.sel { background: var(--tone); color: var(--on-tone); font-weight: 700; }
+.menu.big .ggrid button:hover { background: var(--fill-accent); color: var(--on-accent); }
+.menu.big .ggrid button.sel { background: var(--fill-tone); color: var(--on-tone); font-weight: 700; }
 .menu .note { padding: 8px 12px 4px; color: var(--dim); font-size: 12px; border-top: 1px solid var(--line); margin-top: 4px; }
 form.add { position: relative; }
 .suggest { position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 15; padding: 6px; border-radius: 18px; font: 500 13px var(--sans);
@@ -258,8 +264,8 @@ body[data-view=discover] #discover, body[data-view=calendar] #calendar, body[dat
 /* a pill that slides to the active tab with a little jelly bounce (see slideTabs) */
 .seg, .tabs { position: relative; }
 .thumb { position: absolute; left: 0; top: 0; border-radius: 999px; background: var(--grad); pointer-events: none; z-index: 0; transform-origin: center; transition: background .3s, opacity .2s; }
-.tabs .thumb { background: var(--tone); }
-.tabs .thumb[data-kind=air] { background: var(--mat-tertiary); }
+.tabs .thumb { background: var(--fill-tone); }
+.tabs .thumb[data-kind=air] { background: var(--fill-tert-strong); }
 .seg button, .tabs button { position: relative; z-index: 1; transition: color .25s, background .15s; }
 .seg button:hover, .tabs button:hover { background: var(--raised); }
 .seg button[aria-selected=true]:hover, .tabs button[aria-pressed=true]:hover, .tabs button.airing-tab[aria-pressed=true]:hover { background: none; }
@@ -282,7 +288,7 @@ body.nomascot #gear { top: 16px; }
 #gear svg { width: 26px; height: 26px; fill: currentColor; }
 #gear svg { transition: transform .3s var(--mat-easing); }
 #gear:hover svg { transform: rotate(40deg); }
-#gear[aria-expanded=true] { background: var(--tone); color: var(--on-tone); }
+#gear[aria-expanded=true] { background: var(--fill-tone); color: var(--on-tone); }
 body.gallery #gear { opacity: 0; pointer-events: none; }
 #gear[data-tip]::after { bottom: auto; top: 50%; left: auto; right: calc(100% + 10px); transform: translateY(-50%); }
 .gearpanel { position: fixed; right: 18px; z-index: 12; width: min(360px, calc(100vw - 36px)); max-height: calc(100vh - 100px); overflow-y: auto; padding: 8px; border-radius: 26px;
@@ -313,11 +319,11 @@ body.gallery #gear { opacity: 0; pointer-events: none; }
 .dbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
 .dbar > button, .dbar input { font: 500 13px var(--sans); }
 .dbar input { flex: 1 1 180px; min-width: 140px; max-width: 280px; }
-.dbar .on { background: var(--tone); color: var(--on-tone); }
+.dbar .on { background: var(--fill-tone); color: var(--on-tone); }
 .dbar button.dd { width: auto; gap: 10px; padding: 9px 14px 9px 16px; }
 .dbar .grow { flex: 1; }
 .btn-lite { background: var(--raised); padding: 7px 14px; border-radius: 999px; font: 500 13px var(--sans); }
-.btn-lite:hover { background: var(--tone); color: var(--on-tone); }
+.btn-lite:hover { background: var(--fill-tone); color: var(--on-tone); }
 /* wide cards (Settings gear, "Wide cards"): the poster on the left like Discover, bigger buttons on the right */
 body.wide-cards #list { grid-template-columns: repeat(auto-fill, minmax(min(500px, 100%), 1fr)); gap: 20px; }
 body.wide-cards #list > li { display: grid; grid-template-columns: 176px 1fr; border-radius: 26px; }
@@ -396,7 +402,7 @@ body.wide-cards .backbtns .wide { padding: 12px; font-size: 14px; }
 .dcard .go { margin-top: auto; display: flex; gap: 8px; padding-top: 4px; }
 .dcard .go button.add { flex: 1; padding: 10px 14px; width: auto; font-size: 14px; font-weight: 700; }
 .dcard .go a.more { padding: 10px 16px; border-radius: 999px; background: var(--raised); color: var(--ink); text-decoration: none; font: 600 14px var(--sans); }
-.dcard .go a.more:hover { background: var(--tone); color: var(--on-tone); }
+.dcard .go a.more:hover { background: var(--fill-tone); color: var(--on-tone); }
 .dmore { display: block; margin: 22px auto 0; padding: 11px 26px; font: 600 14px var(--sans); }
 @media (max-width: 900px) { .dgrid { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .dcard { grid-template-columns: 120px 1fr; } .dhead h2 { font-size: 28px; } }
@@ -405,7 +411,7 @@ body.wide-cards .backbtns .wide { padding: 12px; font-size: 14px; }
   background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .corner button svg { width: 16px; height: 16px; fill: currentColor; }
 .corner button:hover { background: color-mix(in srgb, var(--glass) 60%, var(--accent)); }
-.corner button.on { background: var(--accent); color: var(--on-accent); }
+.corner button.on { background: var(--fill-accent); color: var(--on-accent); }
 .corner [data-tip]::after { left: 0; transform: none; }
 .chip.rate { background: var(--tone); color: var(--on-tone); }
 .tabactions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -8px 0 16px; }
@@ -433,7 +439,7 @@ button.add:disabled { background: var(--raised); color: var(--dim); cursor: defa
 .menu { max-height: min(60vh, 380px); overflow-y: auto; }
 .menu [role=option] { white-space: nowrap; display: flex; align-items: center; padding: 8px 12px; border-radius: 12px; cursor: pointer; color: var(--ink); outline: none; }
 .menu [role=option].active { background: var(--raised); }
-.menu [role=option][aria-selected=true] { background: var(--tone); color: var(--on-tone); }
+.menu [role=option][aria-selected=true] { background: var(--fill-tone); color: var(--on-tone); }
 .menu [role=option] i { font-style: normal; margin-left: auto; padding-left: 14px; }
 @keyframes menuIn { from { opacity: 0; transform: scale(.96) translateY(-4px); } }
 .ctrl button svg, .backhead button svg { width: 18px; height: 18px; fill: currentColor; vertical-align: middle; }
@@ -540,7 +546,7 @@ const TABS = [["started", "Started"], ["on hold", "On hold"], ["not started", "N
 let items = [], q = "";
 let tab = localStorage.getItem("tab2");
 if (!TABS.some(([k]) => k === tab)) tab = "started";
-const SORTS = [["az", "A–Z"], ["za", "Z–A"], ["added", "Recently added"], ["year", "Newest year"], ["rating", "Highest rated"]];
+const SORTS = [["az", "A–Z"], ["za", "Z–A"], ["added", "Recently added"], ["year", "Newest year"], ["rating", "Highest rated"], ["mal", "MAL score"], ["malpop", "MAL popularity"]];
 let sortBy = localStorage.getItem("sort");
 if (!SORTS.some(([k]) => k === sortBy)) sortBy = "az";
 const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
@@ -549,6 +555,8 @@ const SORT_FNS = {
   za: (a, b) => byName(b, a),
   added: (a, b) => items.indexOf(b) - items.indexOf(a),    // new titles are appended to the sheet
   rating: (a, b) => (+b.rating || 0) - (+a.rating || 0) || byName(a, b),
+  mal: (a, b) => (infoOf[b.name]?.mal_score || 0) - (infoOf[a.name]?.mal_score || 0) || byName(a, b),
+  malpop: (a, b) => (infoOf[a.name]?.mal_pop || 1e9) - (infoOf[b.name]?.mal_pop || 1e9) || byName(a, b),   // #1 is the most popular
   year: (a, b) => (infoOf[b.name]?.year || 0) - (infoOf[a.name]?.year || 0) || byName(a, b),
 };
 const infoOf = {};      // title -> {year, rating, ratingText, uncensored, tags}, false if unavailable
@@ -562,7 +570,7 @@ const seasonsOf = {};   // title -> [{n, id, episodes}] from AniList, false if u
 const coverBust = {};
 
 const $ = id => document.getElementById(id);
-const isMovie = it => /^movie$/i.test(it.progress);
+const isMovie = it => /^movie$/i.test(it.progress) || (!parse(it.progress) && infoOf[it.name]?.format === "MOVIE");   // AniList says movie, or it was added as one
 const parse = p => { const m = /^S(\d+)(?:\s*E(\d+))?$/i.exec(p); return m ? { s: +m[1], e: +(m[2] || 0) } : null; };
 const fmt = ({ s, e }) => e ? `S${s} E${e}` : `S${s}`;
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
@@ -590,7 +598,8 @@ const epCount = (it, s) => seasonsOf[it.name]?.[s - 1]?.episodes ?? null;
 
 function setWhere(it, s, e) {
   it.progress = e || s > 1 ? fmt({ s, e }) : "";
-  if (!it.progress) it.status = "not started";
+  // No episode (E–) always means not started, whatever season is picked.
+  if (!e) { if (it.status === "started") it.status = "not started"; }
   else if (it.status === "not started" || it.status === "on hold") it.status = "started";
 }
 
@@ -743,7 +752,13 @@ function bigMenu(b, options, value, onPick) {
     ev.preventDefault();
   };
   const none = options.find(([v]) => v === 0);
-  const jw = el("div", { className: "jump" }); jw.append(jump); box.append(jw);
+  // Typing a number shows a "Go to" button right away (Enter works too), so nothing needs hunting through the 50-groups.
+  const go = el("button", { type: "button", className: "gojump", hidden: true });
+  jump.oninput = () => {
+    const n = parseInt(jump.value, 10), ok = n >= 1 && n <= top;
+    go.hidden = !ok; if (ok) { go.textContent = `Go to ${prefix}${n}`; go.onclick = () => pick(n); }
+  };
+  const jw = el("div", { className: "jump" }); jw.append(jump, go); box.append(jw);
   if (none) { const o = el("div", { className: "opt" + (value === 0 ? " sel" : ""), textContent: none[1] === "E–" ? "Not started (E–)" : none[1], onclick: () => pick(0) }); box.append(o); }
   const groups = Math.ceil(top / GROUP), cur = Math.max(1, Math.ceil(value / GROUP));
   let curHead = null;
@@ -824,7 +839,41 @@ function render() {
 }
 
 // Buttons under the tabs: sharing your recommendations, adding a friend's.
+// Entries that AniList says are seasons of one show (e.g. "X" and "X Season 2" both on the list).
+function duplicateGroups() {
+  const by = new Map();
+  for (const it of items) {
+    const root = seasonsOf[it.name]?.[0]?.parts?.[0]?.id;
+    if (root && !isMovie(it)) by.set(root, [...(by.get(root) || []), it]);
+  }
+  return [...by.values()].filter(g => g.length > 1);
+}
+const progRank = it => { const w = parse(it.progress) || { s: 0, e: 0 }; return w.s * 10000 + w.e; };
+function mergeDuplicates(groups) {
+  const names = groups.map(g => g.map(i => `“${i.name}”`).join(" + ")).join("\n");
+  if (!confirm(`Combine these into one card each? Progress, notes and links are kept.\n\n${names}`)) return;
+  for (const g of groups) {
+    const keep = [...g].sort((a, b) => a.name.length - b.name.length)[0];   // the plain title, not "… Season 2"
+    const far = [...g].sort((a, b) => progRank(b) - progRank(a))[0];       // whoever has watched the furthest
+    const links = {};
+    for (const i of [...g].reverse()) Object.assign(links, parseLinks(i.links));
+    const notes = [...new Set(g.map(i => i.notes).filter(Boolean))].join(" · ");
+    Object.assign(keep, { progress: far.progress, status: far.status, notes, links: fmtLinks(links),
+      pinned: g.some(i => i.pinned), rec: g.some(i => i.rec), rating: keep.rating || far.rating || g.find(i => i.rating)?.rating || "",
+      with: keep.with || g.find(i => i.with)?.with || "" });
+    for (const i of g) if (i !== keep) items.splice(items.indexOf(i), 1);
+  }
+  render(); save();
+  flash("Combined");
+}
 function renderActions() {
+  const box = $("tabActions");
+  renderActions.base();
+  const dups = duplicateGroups();
+  if (dups.length) box.append(el("span", { className: "hint", textContent: "Some shows are listed more than once (they are seasons of the same show)." }),
+    el("button", { textContent: "Combine", onclick: () => mergeDuplicates(dups) }));
+}
+renderActions.base = function () {
   const box = $("tabActions");
   if (tab === "recs") {
     const b = el("button", { textContent: "Export my recommendations", onclick: exportRecs });
@@ -838,9 +887,9 @@ function renderActions() {
     } }));
     box.replaceChildren(...kids);
   } else box.replaceChildren();
-}
+};
 async function loadIds() {
-  try { myIds = new Set(Object.values(await (await fetch("/api/ids")).json())); } catch {}
+  try { myIds = new Set(await (await fetch("/api/ids")).json()); } catch {}
 }
 async function loadFriends() {
   try { friends = await (await fetch("/api/friends")).json(); } catch { friends = []; }
@@ -931,7 +980,7 @@ function applyTheme(t) {
   st.textContent = t ? themeCss(t.h, t.s) : "";
   const art = document.getElementById("themeArt");
   art.hidden = !t;
-  if (t) art.style.setProperty("--art", `url("/api/cover?name=${encodeURIComponent(t.title)}")`);
+  if (t) art.style.setProperty("--art", `url("${t.art || "/api/cover?name=" + encodeURIComponent(t.title)}")`);   // art: the cover of the season you picked
   placeArt();
   try { localStorage.setItem("theme", JSON.stringify(t || null)); } catch {}
 }
@@ -974,7 +1023,7 @@ function pickTheme() {
     b.append(img);
     img.onerror = () => { img.remove(); b.textContent = it.name; };
     b.onclick = () => {
-      const go = () => { try { choose({ title: it.name, ...dominantColor(img) }); } catch { flash("Couldn't read that cover", true); } };
+      const go = () => { try { choose({ title: it.name, art: coverSrc(it), ...dominantColor(img) }); } catch { flash("Couldn't read that cover", true); } };
       img.complete && img.naturalWidth ? go() : img.addEventListener("load", go, { once: true });
     };
     grid.append(b);
@@ -1075,11 +1124,12 @@ async function prefetchInfo() {
 }
 
 // Fetch season/episode data for visible shows one at a time (the server caches it).
-let fetching = false;
+let fetching = false, idsStale = false;
 async function prefetchSeasons(shown) {
   if (fetching) return;
   const it = shown.find(i => !(i.name in seasonsOf));
-  if (!it) return;
+  if (!it) { if (idsStale) { idsStale = false; loadIds(); } return; }   // all season chains are in: later seasons now count as "on your list"
+  idsStale = true;
   fetching = true;
   try {
     const r = await fetch(`/api/seasons?name=${encodeURIComponent(it.name)}`);
@@ -1240,6 +1290,10 @@ function frontFace(it, li) {
   body.append(a);
   const info = infoOf[it.name];
   if (info) body.append(el("div", { className: "meta", textContent: [info.year, ...info.tags.slice(0, 3)].filter(Boolean).join(" · ") }));
+  if (info?.mal_score || info?.mal_rank || info?.mal_pop) {
+    const bits = [info.mal_score && `MAL ★ ${info.mal_score.toFixed(2)}`, info.mal_rank && `Rank #${info.mal_rank.toLocaleString()}`, info.mal_pop && `Popularity #${info.mal_pop.toLocaleString()}`].filter(Boolean);
+    body.append(el("div", { className: "meta", textContent: bits.join(" · "), title: "From MyAnimeList: score, overall rank, popularity rank" }));
+  }
   const air = airing(it);
   if (air) body.append(el("div", { className: "meta air", textContent: `S${air.s} E${air.ep} airs in ${untilText(air.at)}` }));
   if (it.with) body.append(el("div", { className: "meta", textContent: `With ${it.with}` }));
@@ -1248,7 +1302,7 @@ function frontFace(it, li) {
   const ctrl = el("div", { className: "ctrl" });
   const { s, e } = where(it);
   if (isMovie(it)) {
-    ctrl.append(el("span", { className: "blk", textContent: "Movie", style: "padding:6px 0;text-align:center;font:700 13px var(--mono);flex:2" }));
+    ctrl.append(el("span", { className: "blk", textContent: "MOVIE", style: "padding:6px 0;text-align:center;font:700 13px var(--mono);flex:2" }));
   } else {
     // Seasons that exist (from AniList), always including the one you're on.
     const total = seasonCount(it) || s;
@@ -1257,7 +1311,7 @@ function frontFace(it, li) {
     const top = Math.max(count ?? 0, count === null ? e + 12 : 0, e);
     const eps = [[0, "E–"], ...Array.from({ length: top }, (_, i) => [i + 1, `E${i + 1}`])];
     ctrl.append(
-      picker(seasons, s, "Choose season", n => edit(it, i => setWhere(i, n, 0))),
+      picker(seasons, s, "Choose season", n => edit(it, i => setWhere(i, n, e ? 1 : 0))),   // a show being watched lands on E1, not E– (which would drop it to Not started)
       picker(eps, e, "Choose episode", n => edit(it, i => setWhere(i, s, n)), true),
     );
   }
@@ -1881,7 +1935,13 @@ $("q").oninput = ev => { q = ev.target.value.toLowerCase(); render(); };
 }
 
 fetch("/api/settings").then(r => r.json()).then(d => { siteSearch = d.search || ""; me = d.me || ""; applyTheme(d.theme || null); }).catch(() => {})
-  .then(() => fetch("/api/items")).then(r => r.json()).then(d => { items = d; render(); return Promise.all([loadFriends(), loadIds()]); }).then(render)
+  .then(() => fetch("/api/items")).then(r => r.json()).then(d => {
+    items = d;
+    // Older lists can hold "started" shows with no episode (E–); those are not started.
+    const stale = items.filter(i => i.status === "started" && parse(i.progress) && !parse(i.progress).e);
+    stale.forEach(i => i.status = "not started");
+    if (stale.length) save();
+    render(); return Promise.all([loadFriends(), loadIds()]); }).then(render)
   .catch(() => flash("Can't reach server.py", true));
 </script>
 </body>

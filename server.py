@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.3.3"
+VERSION = "1.3.4"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -161,7 +161,7 @@ SEASON_QUERY = """query($id:Int){Media(id:$id){id format episodes title{romaji e
   coverImage{large} nextAiringEpisode{episode airingAt} relations{edges{relationType node{id format}}}}}"""
 SEASONS_DB = os.path.join(ROOT, "data", "seasons.json")
 AIRING_TTL = 3 * 3600     # airing shows gain episodes weekly
-SEASONS_TTL = 7 * 24 * 3600
+SEASONS_TTL = 24 * 3600   # a day: a newly announced sequel should show up soon
 TV = ("TV", "TV_SHORT")
 rate_lock = threading.Lock()
 next_slot = [0.0]
@@ -243,7 +243,7 @@ def cover_for(name):
         return ent
 
 
-INFO_QUERY = """query($id:Int){Media(id:$id){id idMal isAdult seasonYear startDate{year} genres synonyms
+INFO_QUERY = """query($id:Int){Media(id:$id){id idMal format isAdult seasonYear startDate{year} genres synonyms
   title{romaji english native} tags{name rank isGeneralSpoiler isMediaSpoiler}}}"""
 INFO_DB = os.path.join(ROOT, "data", "info.json")
 INFO_TTL = 30 * 24 * 3600
@@ -266,8 +266,8 @@ rating_queue = []          # media ids waiting for a rating; one worker drains i
 rating_worker = [None]
 
 
-def jikan_rating(mal_id):
-    """MyAnimeList's rating text for a show ('R+ - Mild Nudity'), None if MAL has none.
+def jikan_data(mal_id):
+    """MyAnimeList's facts for a show: age rating text ('R+ - Mild Nudity'), score, rank, popularity; None if MAL has none.
     Raises JikanDown on any failure and then makes no more calls for JIKAN_PAUSE."""
     with jikan_lock:
         if time.time() < jikan_pause_until[0]:
@@ -275,7 +275,7 @@ def jikan_rating(mal_id):
         time.sleep(JIKAN_GAP)
         req = urllib.request.Request(f"https://api.jikan.moe/v4/anime/{mal_id}", headers={"User-Agent": "anime-list"})
         try:
-            return json.load(urllib.request.urlopen(req, timeout=6))["data"].get("rating")
+            return json.load(urllib.request.urlopen(req, timeout=6))["data"]
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 return None
@@ -307,14 +307,20 @@ def save_info(db):
         json.dump(db, f, indent=1)
 
 
+def mal_done(ent):
+    """Nothing more to ask MAL: rating and score/rank/popularity are all saved (or there is no MAL entry)."""
+    return bool(ent.get("rated") and ("mal_score" in ent or not ent.get("mal")))
+
+
 def fetch_rating(media_id):
-    """Ask MAL for one title's rating and save it. Failures are remembered so we don't retry soon."""
+    """Ask MAL for one title's rating, score, rank and popularity and save them. Failures are remembered so we don't retry soon."""
     with info_lock:
         ent = load_info().get(str(media_id))
-    if not ent or ent.get("rated"):
+    if not ent or mal_done(ent):
         return
     try:
-        text = jikan_rating(ent["mal"]) if ent.get("mal") else None
+        data = (jikan_data(ent["mal"]) if ent.get("mal") else None) or {}
+        text = data.get("rating")
         failed = False
     except JikanDown as e:
         if str(e) == "paused":
@@ -330,6 +336,8 @@ def fetch_rating(media_id):
         else:
             code, shown = rating_code(text, ent.get("adult"))
             ent.update(rating=code, ratingText=shown, rated=True)
+            if ent.get("mal"):
+                ent.update(mal_score=data.get("score"), mal_rank=data.get("rank"), mal_pop=data.get("popularity"))
         save_info(db)
 
 
@@ -350,7 +358,7 @@ def want_rating(media_id):
     """Queue a rating lookup (once per title), unless the last try failed recently."""
     with info_lock:
         ent = load_info().get(str(media_id))
-        if (not ent or ent.get("rated") or media_id in rating_queue
+        if (not ent or mal_done(ent) or media_id in rating_queue
                 or time.time() - ent.get("rating_try", 0) < RATING_RETRY
                 or time.time() < jikan_pause_until[0]):
             return
@@ -367,7 +375,7 @@ def build_info(media_id):
     tags = sorted((t for t in m["tags"] if t["rank"] >= 60 and not t["isGeneralSpoiler"] and not t["isMediaSpoiler"]),
                   key=lambda t: -t["rank"])
     code, text = rating_code(None, m["isAdult"])
-    return {"year": m["seasonYear"] or (m["startDate"] or {}).get("year"),
+    return {"format": m["format"], "year": m["seasonYear"] or (m["startDate"] or {}).get("year"),
             "rating": code, "ratingText": text, "mal": m.get("idMal"), "adult": m["isAdult"],
             "rated": not m.get("idMal"),   # nothing to ask MAL about without an id
             "uncensored": any(UNCENSORED_RE.search(n or "") for n in names),
@@ -389,7 +397,7 @@ def info_for(name):
             ent["rated"] = True
         else:
             ent = None
-    if not ent or time.time() - ent["at"] > INFO_TTL:
+    if not ent or "format" not in ent or time.time() - ent["at"] > INFO_TTL:
         try:
             fresh = {"at": time.time(), **build_info(media_id)}
         except Exception:
@@ -943,6 +951,25 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def send_image(self, data, ctype, extra=None):
+        """Covers are re-asked for on every page draw; an ETag turns the repeats into tiny 304s (no re-download)."""
+        tag = '"%s"' % hashlib.sha1(data).hexdigest()
+        if self.headers.get("If-None-Match") == tag:
+            self.send_response(304)
+            self.send_header("ETag", tag)
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("ETag", tag)
+        self.send_header("Cache-Control", "no-cache")
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_GET(self):
         if self.path == "/api/items":
             return self.send(200, read_items())
@@ -992,9 +1019,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(503, {"error": str(e)})
         if self.path == "/api/ids":
             # AniList ids of the shows on the list, so friends' picks can be matched however they are titled.
+            # Every season's id counts (read from the saved season chains), so a later season is "on your list" too.
             names = {i["name"] for i in read_items()}
-            return self.send(200, {n: (e.get("id") or int(e["file"].split(".")[0]))
-                                   for n, e in load_covers().items() if n in names and e.get("file")})
+            ids = {e.get("id") or int(e["file"].split(".")[0])
+                   for n, e in load_covers().items() if n in names and e.get("file")}
+            try:
+                with open(SEASONS_DB) as f:
+                    for n, ent in json.load(f).items():
+                        if n in names:
+                            ids.update(p["id"] for x in ent["seasons"] for p in x["parts"])
+            except (FileNotFoundError, KeyError, ValueError):
+                pass
+            return self.send(200, sorted(ids))
         if self.path == "/api/friends":
             db = load_friends()
             return self.send(200, [{"from": who, "at": v["at"], "items": v["items"]} for who, v in db.items()])
@@ -1025,14 +1061,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(404, {"error": "no cover"})
             with open(os.path.join(COVERS, ent["file"]), "rb") as f:
                 data = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", "image/jpeg")
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "no-cache")
-            self.send_header("X-Match", ent["match"].encode("ascii", "replace").decode())
-            self.end_headers()
-            self.wfile.write(data)
-            return
+            return self.send_image(data, "image/jpeg", {"X-Match": ent["match"].encode("ascii", "replace").decode()})
         if self.path.startswith("/api/seasons"):
             name = parse_qs(urlparse(self.path).query).get("name", [""])[0]
             try:
@@ -1055,13 +1084,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(404, {"error": str(e)})
             with open(path, "rb") as f:
                 data = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            self.wfile.write(data)
-            return
+            return self.send_image(data, ctype)
         if self.path == "/api/mascots":
             # Every image in assets/ is a mascot; the page picks one at random per load.
             files = sorted(f for f in (os.listdir(ASSETS) if os.path.isdir(ASSETS) else []) if f.lower().endswith(MASCOT_EXTS))

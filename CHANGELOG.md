@@ -1,5 +1,21 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.3.4
+**Fixes**
+- Covers are no longer downloaded again and again (it was slow on slower connections).
+- A show with no episode picked (E–) now always counts as Not started, whatever season is chosen.
+- Movies show a plain MOVIE tag with no season or episode.
+- Typing an episode number in the picker shows a "Go to" button right away, so you don't have to hunt through the groups of 50.
+- The theme background now uses the cover of the season you picked, not always season 1.
+- Later seasons of a show already on your list now show as "on your list" in Discover and can't be added twice.
+- If a show ended up on the list twice (say "X" and "X Season 2"), a **Combine** button appears above the cards and merges them.
+- Newly announced seasons show up within a day.
+
+**New**
+- **MyAnimeList score, rank and popularity** now show on each card, and you can sort by MAL score or MAL popularity.
+- Coloured buttons now have a soft gradient.
+- Changing the season on a show you're watching lands on E1 instead of dropping the show to Not started.
+
 ## 1.3.3
 **Nicer to use**
 - A back-to-top button pops up with a little bounce when you scroll down the page.

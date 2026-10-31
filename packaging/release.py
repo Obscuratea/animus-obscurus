@@ -13,6 +13,9 @@ log = open(os.path.join(ROOT, "CHANGELOG.md"), encoding="utf-8").read()
 m = re.search(rf"^## {re.escape(ver)}\b.*?\n(.*?)(?=^## |\Z)", log, re.M | re.S)
 if not m:
     sys.exit(f"CHANGELOG.md has no '## {ver}' section")
+# Major (x.0.0) and minor (x.y.0) releases get a fresh "Latest release features" image + text in the README.
+if ver.split(".")[-1] == "0" and f"v{ver}" not in open(os.path.join(ROOT, "README.md"), encoding="utf-8").read():
+    sys.exit(f"README.md's 'Latest release features' section doesn't mention v{ver}; update the image (docs/latest-release.png) and text first")
 d = os.path.join(ROOT, "dist")
 files = [os.path.join(d, f"Animus-Obscurus-Update-v{ver}.zip"), os.path.join(d, f"Animus-Obscurus-Update-v{ver}.zip.sha256"),
          os.path.join(d, f"Animus-Obscurus-Windows-v{ver}.zip")]

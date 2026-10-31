@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Publish the current VERSION as a GitHub Release (what the in-app updater looks for).
 
-Run packaging/build_windows.py first, then: python3 packaging/release.py
+Run packaging/build_windows.py first, then: python3 packaging/release.py [--yes]
 Uploads the Update zip + its .sha256 (read by the updater) and the full Windows zip,
 with this version's section of CHANGELOG.md as the release notes. Needs `gh` logged in.
 """
@@ -19,6 +19,6 @@ files = [os.path.join(d, f"Animus-Obscurus-Update-v{ver}.zip"), os.path.join(d, 
 for f in files:
     if not os.path.exists(f):
         sys.exit(f"missing {f}; run packaging/build_windows.py first")
-if input(f"Publish v{ver} to GitHub Releases? [y/N] ").lower() != "y":
+if "--yes" not in sys.argv and input(f"Publish v{ver} to GitHub Releases? [y/N] ").lower() != "y":
     sys.exit("cancelled")
 subprocess.run(["gh", "release", "create", f"v{ver}", *files, "--title", f"Animus Obscurus {ver}", "--notes", m.group(1).strip()], cwd=ROOT, check=True)

@@ -37,3 +37,10 @@ When a new release is out, the gear icon gets a red dot and its menu shows **Upd
 python3 packaging/build_windows.py   # full Windows zip + update zip + checksum into dist/
 python3 packaging/release.py         # publishes them as a GitHub Release (needs `gh`)
 ```
+
+## Support development
+
+Animus Obscurus is free. If it's useful to you and you'd like to help fund more work on it:
+
+- Ko-fi: https://ko-fi.com/obscuratea
+- Patreon: https://patreon.com/Obscuratea

@@ -707,13 +707,13 @@ addEventListener("resize", () => closeMenu());
 addEventListener("scroll", ev => { if (openMenu && !openMenu.box.contains(ev.target)) closeMenu(); }, true);
 
 // Season / episode button: a themed menu instead of the browser's own list.
-// Long shows (One Piece has 1000+ episodes) get a "go to episode" box and 50-episode groups instead of one endless list.
+// Episodes always get a "go to episode" box and 50-episode groups (a short show is just one group); seasons stay a plain list.
 const BIG_LIST = 40, GROUP = 50;
-function picker(options, value, tip, onChange) {
+function picker(options, value, tip, onChange, grouped) {
   const b = el("button", { type: "button", className: "blk" });
   b.setAttribute("aria-haspopup", "listbox"); b.setAttribute("aria-expanded", "false"); b.setAttribute("aria-label", tip);
   b.textContent = (options.find(([v]) => v === value) || [, ""])[1];
-  b.onclick = () => options.length > BIG_LIST ? bigMenu(b, options, value, onChange) : popMenu(b, options, value, onChange);
+  b.onclick = () => grouped || options.length > BIG_LIST ? bigMenu(b, options, value, onChange) : popMenu(b, options, value, onChange);
   const box = el("span");
   box.dataset.tip = tip;
   box.append(b);
@@ -1250,7 +1250,7 @@ function frontFace(it, li) {
     const eps = [[0, "E–"], ...Array.from({ length: top }, (_, i) => [i + 1, `E${i + 1}`])];
     ctrl.append(
       picker(seasons, s, "Choose season", n => edit(it, i => setWhere(i, n, 0))),
-      picker(eps, e, "Choose episode", n => edit(it, i => setWhere(i, s, n))),
+      picker(eps, e, "Choose episode", n => edit(it, i => setWhere(i, s, n)), true),
     );
   }
   const next = nextEpisode(it);

@@ -11,7 +11,7 @@
 
 **Episodes for long shows**
 - **Season and episode buttons use the same themed menu as the rest of the app** instead of the browser's own list.
-- **Shows with hundreds of episodes** (One Piece has over 1100) get a "Go to episode" box: type a number and press Enter. Below it, episodes are grouped in 50s (E1 to E50, E51 to E100, ...), and the group you're on opens first.
+- **Every show's episode menu** has a "Go to episode" box: type a number and press Enter. Below it, episodes are grouped in 50s (E1 to E50, E51 to E100, ...), and the group you're on opens first. A short show is simply one group.
 
 **Polish**
 - The gear icon's tooltip and update dot no longer tilt when you hover it; only the cog turns.

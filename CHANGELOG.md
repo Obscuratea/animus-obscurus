@@ -1,5 +1,17 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.3.5
+**New**
+- **Special looks** (gear, "Special look"): Paper / Manga, Neon Tokyo and Retro 90s anime. You can also tint a look with the show you picked in "Theme from a show".
+- **Continue watching**: a row of covers above the cards on the Started tab. Click one to open its next episode.
+- **Synopsis** on the back of each card.
+- **Keyboard shortcuts**: `/` search, `A` add, `1`-`4` switch view, `[` `]` change tab, `?` for help.
+- If MyAnimeList's score isn't available, cards show AniList's score as "AL ★ 8.7" instead.
+
+**Fixes**
+- The theme background now stays on the season you picked after a reload.
+- "What's new" only lists the last five updates.
+
 ## 1.3.4
 **Fixes**
 - Covers are no longer downloaded again and again (it was slow on slower connections).

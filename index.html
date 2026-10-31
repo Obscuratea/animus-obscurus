@@ -258,7 +258,16 @@ body.gallery #themeArt { opacity: 0; }
 .seg button:hover { background: var(--raised); }
 .seg button[aria-selected=true] { background: none; color: var(--on-accent); }
 body:not([data-view=list]) .bar, body:not([data-view=list]) .tabs-row, body:not([data-view=list]) .tabactions, body:not([data-view=list]) .shelf,
-body:not([data-view=list]) #list, body:not([data-view=list]) #count { display: none; }
+body:not([data-view=list]) #list, body:not([data-view=list]) #count, body:not([data-view=list]) .controw { display: none; }
+.controw { margin-bottom: 12px; } .controw[hidden] { display: none; }
+.controw h3 { margin: 0 0 6px; font: 600 13px var(--sans); color: var(--dim); }
+.controw .strip { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; }
+.controw a { flex: none; width: 96px; text-decoration: none; color: var(--ink); font: 12px/1.3 var(--sans); }
+.controw img, .controw .ph { display: block; width: 96px; height: 136px; border-radius: 14px; object-fit: cover; background: var(--well); transition: transform .15s; }
+.controw a:hover img, .controw a:focus-visible img { transform: translateY(-3px); }
+.controw a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
+.controw b { display: block; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.controw span { color: var(--dim); }
 #discover, #calendar, #stats { display: none; }
 body[data-view=discover] #discover, body[data-view=calendar] #calendar, body[data-view=stats] #stats { display: block; }
 /* a pill that slides to the active tab with a little jelly bounce (see slideTabs) */
@@ -272,7 +281,7 @@ body[data-view=discover] #discover, body[data-view=calendar] #calendar, body[dat
 .tabs button[aria-pressed=true], .tabs button.airing-tab[aria-pressed=true] { background: none; }
 .tabs button.airing-tab[aria-pressed=true] { color: var(--mat-on-tertiary); }
 #toTop { position: fixed; right: 18px; bottom: 18px; z-index: 6; width: 52px; height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
-  background: var(--tone); color: var(--on-tone); box-shadow: 0 4px 14px #0003; transform-origin: 50% 100%; visibility: hidden; }
+  background: var(--fill-tone); color: var(--on-tone); box-shadow: 0 4px 14px #0003; transform-origin: 50% 100%; visibility: hidden; }
 #toTop.show { visibility: visible; }
 #toTop svg { width: 26px; height: 26px; fill: currentColor; transition: transform .3s var(--mat-easing); }
 #toTop:hover svg { transform: translateY(-3px); }
@@ -447,6 +456,7 @@ button.add:disabled { background: var(--raised); color: var(--dim); cursor: defa
 .backhead .name { flex: 1; padding-top: 7px; }
 .backhead button { flex: none; width: 34px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--dim); }
 .backhead [data-tip]::after { bottom: auto; top: calc(100% + 8px); left: auto; right: 0; transform: none; }
+.synopsis { font: 12px/1.45 var(--sans); color: var(--mute, var(--ink)); opacity: .85; max-height: 7.5em; overflow-y: auto; }
 textarea.notes { flex: 1; min-height: 140px; resize: none; width: 100%; font: 13px/1.45 var(--sans); color: var(--ink); background: var(--well);
   border: 0; border-radius: 16px; padding: 10px 12px; }
 textarea.notes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -460,6 +470,53 @@ textarea.notes:focus-visible { outline: 2px solid var(--accent); outline-offset:
 #status { position: fixed; left: 50%; transform: translateX(-50%); top: 16px; z-index: 6; font: 500 13px var(--sans); background: var(--mat-inverse-surface); color: var(--mat-inverse-on-surface);
   border-radius: 999px; padding: 8px 18px; opacity: 0; transition: opacity .2s; box-shadow: 0 8px 24px #0005; }
 #status.show { opacity: 1; } #status.err { background: var(--danger); color: #fff; }
+
+.looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 16px 0; }
+.lookopt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 12px 14px; border-radius: 18px; background: var(--raised); }
+.lookopt.on { box-shadow: 0 0 0 2px var(--accent); }
+.lookopt small { color: var(--dim); font-weight: 400; }
+.lk-sw { display: flex; gap: 4px; } .lk-sw i { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px #0003; }
+.lookpick { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; cursor: pointer; }
+.lookpick input { width: 18px; height: 18px; padding: 0; accent-color: var(--accent); }
+/* ---- Special looks (Settings > Special look): big style changes; palettes come from LOOKS in the script. ---- */
+html[data-look] *:not(img):not(svg):not(path):not(.dot):not(.mascot) { border-radius: var(--lk-r) !important; }
+html[data-look] li, html[data-look] .menu, html[data-look] .modal .panel, html[data-look] .gearpanel, html[data-look] .shelf, html[data-look] .tabs,
+html[data-look] input:not([type=checkbox]):not([type=radio]), html[data-look] .bar button, html[data-look] form.add button, html[data-look] .ctrl button,
+html[data-look] .blk, html[data-look] a.play, html[data-look] #gear, html[data-look] #toTop { border: var(--lk-bw) solid var(--lk-line) !important; }
+html[data-look] li, html[data-look] .menu, html[data-look] .modal .panel, html[data-look] .gearpanel { backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: var(--lk-shadow); }
+html[data-look] li:hover { transform: translate(-2px, -2px); box-shadow: var(--lk-shadow-hover); }
+html[data-look] .wordmark { letter-spacing: var(--lk-track); }
+html[data-look] .logo { filter: none; }
+
+/* Paper / Manga: ink on cream, halftone dots, hard shadows, one red spot colour */
+html[data-look=paper] { --lk-r: 0px; --lk-bw: 2px; --lk-line: #111; --lk-track: .04em; --lk-shadow: 4px 4px 0 #111; --lk-shadow-hover: 7px 7px 0 #111; }
+html[data-look=paper] body { background-image: radial-gradient(#11111122 1.2px, transparent 1.6px); background-size: 7px 7px; background-attachment: fixed; }
+html[data-look=paper] .wordmark { background: none; color: #111; -webkit-text-fill-color: #111; text-shadow: 4px 4px 0 var(--mat-accent); font-family: Impact, "Arial Narrow Bold", "Arial Black", sans-serif; font-weight: 900; }
+html[data-look=paper] .tabs .thumb { box-shadow: 3px 3px 0 var(--mat-accent); }
+html[data-look=paper] li .cover img { filter: grayscale(1) contrast(1.15); }
+html[data-look=paper] li:hover .cover img, html[data-look=paper] li.fresh .cover img { filter: none; }
+html[data-look=paper] h2, html[data-look=paper] .name { font-family: Impact, "Arial Narrow Bold", "Arial Black", sans-serif; letter-spacing: .02em; font-weight: 700; }
+
+/* Neon Tokyo: dark blue-black, glowing pink and cyan edges */
+html[data-look=neon] { --lk-r: 6px; --lk-bw: 1px; --lk-line: #ff3cc7; --lk-track: .12em; --lk-shadow: 0 0 0 1px #19f0ff44, 0 0 18px #ff3cc733; --lk-shadow-hover: 0 0 0 1px #19f0ff, 0 0 26px #ff3cc7aa; }
+html[data-look=neon] body { background-image: linear-gradient(#19f0ff0d 1px, transparent 1px), linear-gradient(90deg, #19f0ff0d 1px, transparent 1px), radial-gradient(ellipse at 20% 0, #ff3cc722, transparent 55%), radial-gradient(ellipse at 90% 100%, #19f0ff1f, transparent 55%);
+  background-size: 46px 46px, 46px 46px, auto, auto; background-attachment: fixed; }
+html[data-look=neon] .wordmark { text-shadow: 0 0 22px #ff3cc788; text-transform: uppercase; }
+html[data-look=neon] .name, html[data-look=neon] .tabs button, html[data-look=neon] .bar button { text-transform: uppercase; letter-spacing: .06em; }
+html[data-look=neon] li, html[data-look=neon] .bar button, html[data-look=neon] .blk, html[data-look=neon] input:not([type=checkbox]):not([type=radio]) { border-color: #ff3cc799 !important; }
+html[data-look=neon] .blk, html[data-look=neon] form.add button, html[data-look=neon] .ctrl button:hover { box-shadow: 0 0 12px #ff3cc766; }
+html[data-look=neon] .tabs .thumb { box-shadow: 0 0 16px #ff3cc788; }
+
+/* Retro 90s anime: cream paper, navy outlines, sticker buttons, sunburst + scanlines */
+html[data-look=retro] { --lk-r: 14px; --lk-bw: 3px; --lk-line: #1d1b3a; --lk-track: .02em; --lk-shadow: 5px 5px 0 #1d1b3a; --lk-shadow-hover: 8px 8px 0 #1d1b3a; }
+html[data-look=retro] body { background-image: repeating-conic-gradient(from 0deg at 50% -10%, #ffd23f33 0deg 6deg, transparent 6deg 12deg); background-attachment: fixed; }
+html[data-look=retro] body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none; background: repeating-linear-gradient(0deg, #0000 0 2px, #1d1b3a0d 2px 3px); }
+html[data-look=retro] .wordmark { background: none; color: #ee2e6b; -webkit-text-fill-color: #ee2e6b; -webkit-text-stroke: 3px #1d1b3a; paint-order: stroke fill; text-shadow: 5px 5px 0 #1d1b3a; font-family: "Arial Black", "Trebuchet MS", sans-serif; font-weight: 900; }
+html[data-look=retro] li:nth-child(odd) { transform: rotate(-.5deg); }
+html[data-look=retro] li:nth-child(even) { transform: rotate(.5deg); }
+html[data-look=retro] li:hover { transform: translate(-2px, -2px) rotate(0); }
+html[data-look=retro] .name, html[data-look=retro] button { font-weight: 800; }
+html[data-look=retro] .tabs .thumb { box-shadow: 0 0 0 3px #1d1b3a; }
 </style>
 </head>
 <body>
@@ -498,6 +555,7 @@ textarea.notes:focus-visible { outline: 2px solid var(--accent); outline-offset:
     <button class="clear" id="clearBtn" hidden>Clear</button>
   </div>
   <div class="shelf" id="shelf" hidden></div>
+  <div class="controw" id="contRow" hidden></div>
   <div class="tabs tabs-row" id="tabs"></div>
   <div class="tabactions" id="tabActions"></div>
   <ul id="list"></ul>
@@ -550,12 +608,13 @@ const SORTS = [["az", "A–Z"], ["za", "Z–A"], ["added", "Recently added"], ["
 let sortBy = localStorage.getItem("sort");
 if (!SORTS.some(([k]) => k === sortBy)) sortBy = "az";
 const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+const score = it => infoOf[it.name]?.mal_score || (infoOf[it.name]?.al_score || 0) / 10;   // MAL's, else AniList's
 const SORT_FNS = {
   az: byName,
   za: (a, b) => byName(b, a),
   added: (a, b) => items.indexOf(b) - items.indexOf(a),    // new titles are appended to the sheet
   rating: (a, b) => (+b.rating || 0) - (+a.rating || 0) || byName(a, b),
-  mal: (a, b) => (infoOf[b.name]?.mal_score || 0) - (infoOf[a.name]?.mal_score || 0) || byName(a, b),
+  mal: (a, b) => score(b) - score(a) || byName(a, b),
   malpop: (a, b) => (infoOf[a.name]?.mal_pop || 1e9) - (infoOf[b.name]?.mal_pop || 1e9) || byName(a, b),   // #1 is the most popular
   year: (a, b) => (infoOf[b.name]?.year || 0) - (infoOf[a.name]?.year || 0) || byName(a, b),
 };
@@ -574,6 +633,7 @@ const isMovie = it => /^movie$/i.test(it.progress) || (!parse(it.progress) && in
 const parse = p => { const m = /^S(\d+)(?:\s*E(\d+))?$/i.exec(p); return m ? { s: +m[1], e: +(m[2] || 0) } : null; };
 const fmt = ({ s, e }) => e ? `S${s} E${e}` : `S${s}`;
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
+const elc = (tag, props, ...kids) => { const n = el(tag, props); n.append(...kids); return n; };   // el with children
 
 function flash(msg, err) {
   const box = $("status");
@@ -586,6 +646,7 @@ async function save() {
     const r = await fetch("/api/items", { method: "PUT", body: JSON.stringify(items) });
     if (!r.ok) throw new Error((await r.json()).error);
     flash("Saved to sheet");
+    if (sLog !== null) loadLog();
   } catch (e) { flash("Save failed: " + e.message, true); }
 }
 
@@ -824,6 +885,7 @@ function render() {
   const shown = tab === "friends" ? [] : tab === "airing" ? items.filter(i => isAiring(i) && ok(i)).sort((a, b) => pinFirst(a, b) || soonest(a, b))
     : items.filter(i => (tab === "all" || (tab === "recs" ? i.rec : i.status === tab)) && ok(i)).sort((a, b) => pinFirst(a, b) || SORT_FNS[sortBy](a, b));
   renderActions();
+  renderContinue();
   if (tab === "friends") {
     const cards = friendGroups().filter(g => g.m.name.toLowerCase().includes(q)).map(friendCard);
     $("count").textContent = `${cards.length} recommendations`;
@@ -836,6 +898,35 @@ function render() {
   else $("list").replaceChildren(...shown.map(row));
   prefetchSeasons([...shown, ...open]);
   prefetchInfo();
+}
+
+// "Continue watching": the shows you moved forward most recently, each opening its next episode.
+function renderContinue() {
+  const box = $("contRow");
+  if (sLog === null) loadLog();
+  const last = new Map();
+  for (const e of sLog || []) last.set(e.name, e.t);
+  const picks = tab !== "started" || q || !sLog ? [] : items.filter(i => i.status === "started" && last.has(i.name) && nextEpisode(i))
+    .sort((a, b) => last.get(b.name) - last.get(a.name)).slice(0, 10);
+  box.hidden = !picks.length;
+  if (box.hidden) return box.replaceChildren();
+  const strip = el("div", { className: "strip" });
+  for (const it of picks) {
+    const next = nextEpisode(it), link = linkFor(it, next.s);
+    const a = el("a", { target: "_blank", rel: "noopener", href: link ? watchUrl(link, next.e) : "#" });
+    a.dataset.tip = link ? `Watch next · ${it.name}` : `Paste a link to watch ${it.name}`;
+    a.onclick = ev => {
+      if (link) return;
+      ev.preventDefault();
+      const t = askLink(it, next.s, next.e);
+      if (t) window.open(watchUrl(t, next.e), "_blank", "noopener");
+    };
+    const img = el("img", { loading: "lazy", alt: "", src: coverSrc(it) });
+    img.onerror = () => img.replaceWith(el("div", { className: "ph", textContent: it.name[0].toUpperCase() }));
+    a.append(img, el("b", { textContent: it.name }), el("span", { textContent: isMovie(it) ? "Movie" : `S${next.s} E${next.e} next` }));
+    strip.append(a);
+  }
+  box.replaceChildren(el("h3", { textContent: "Continue watching" }), strip);
 }
 
 // Buttons under the tabs: sharing your recommendations, adding a friend's.
@@ -945,7 +1036,7 @@ async function setMe(n) {
 }
 
 // ---- Themes: colours taken from a show's cover.
-function themeCss(h, s) {
+function themeTokens(h, s) {
   s = Math.min(Math.max(s, 28), 72);
   const c = (hh, ss, l) => `hsl(${Math.round(((hh % 360) + 360) % 360)} ${Math.round(ss)}% ${l}%)`;
   const hi = Math.min(s + 12, 85);
@@ -966,9 +1057,59 @@ function themeCss(h, s) {
     "on-surface": c(h, 14, 89), "on-surface-variant": c(h, 12, 82), outline: c(h, 6, 60), "outline-variant": c(h, 10, 29),
     "inverse-surface": c(h, 14, 89), "inverse-on-surface": c(h, 10, 20), "inverse-primary": c(h, s, 42),
     accent: c(h, hd, 78), "gradient-start": c(h, hd, 78), "gradient-end": c(h + 28, hd - 8, 72) };
-  const decl = o => Object.entries(o).map(([k, v]) => `--mat-${k}:${v}`).join(";");
-  return `:root{${decl(light)}}@media (prefers-color-scheme: dark){:root{${decl(dark)}}}`;
+  return { light, dark };
 }
+const declTokens = o => Object.entries(o).map(([k, v]) => `--mat-${k}:${v}`).join(";");
+function themeCss(h, s) {
+  const { light, dark } = themeTokens(h, s);
+  return `:root{${declTokens(light)}}@media (prefers-color-scheme: dark){:root{${declTokens(dark)}}}`;
+}
+
+// ---- Special looks: whole-page style changes with their own palette. The anime picker can optionally recolour them.
+const pal = p => ({ primary: p.pri, "on-primary": p.onPri, "primary-container": p.con, "on-primary-container": p.onCon,
+  secondary: p.high, "on-secondary": p.ink, "secondary-container": p.high, "on-secondary-container": p.ink,
+  tertiary: p.tert, "on-tertiary": p.onTert, "tertiary-container": p.tcon, "on-tertiary-container": p.onTcon,
+  error: "#e5484d", "on-error": "#fff", "error-container": p.high, "on-error-container": p.ink,
+  surface: p.low, "surface-dim": p.low, "surface-bright": p.top, "surface-container-lowest": p.lowest, "surface-container-low": p.low,
+  "surface-container": p.mid, "surface-container-high": p.high, "surface-container-highest": p.top,
+  "on-surface": p.ink, "on-surface-variant": p.dim, outline: p.line, "outline-variant": p.line2 || p.line,
+  "inverse-surface": p.ink, "inverse-on-surface": p.low, "inverse-primary": p.acc,
+  accent: p.acc, "gradient-start": p.g1, "gradient-end": p.g2, font: p.font });
+const FLAT = "--fill-tone:var(--tone);--fill-accent:var(--mat-accent);--fill-tert:var(--mat-tertiary-container);--fill-tert-strong:var(--mat-tertiary);--grad:linear-gradient(var(--mat-accent),var(--mat-accent));--glass:var(--mat-surface-container-high);";
+const LOOKS = {
+  paper: { name: "Paper / Manga", blurb: "Black ink on cream paper, halftone dots, hard shadows, one red accent", dark: false, flat: true,
+    tokens: pal({ low: "#f3ecd8", lowest: "#fffdf4", mid: "#fbf6e6", high: "#fffdf4", top: "#e9dfc3", ink: "#111111", dim: "#4d483f", line: "#111111",
+      pri: "#d7263d", onPri: "#ffffff", con: "#111111", onCon: "#ffffff", tert: "#111111", onTert: "#fff", tcon: "#ffd93b", onTcon: "#111111",
+      acc: "#d7263d", g1: "#111111", g2: "#111111", font: "'Trebuchet MS', 'Segoe UI', system-ui, sans-serif" }) },
+  neon: { name: "Neon Tokyo", blurb: "Blue-black night with glowing pink and cyan, grid lines", dark: true, flat: false,
+    tokens: pal({ low: "#0a0a16", lowest: "#06060f", mid: "#11112a", high: "#1a1a3a", top: "#23234c", ink: "#e9e9ff", dim: "#9393c4", line: "#3b3b78",
+      pri: "#ff5fd2", onPri: "#1a0020", con: "#5a1a6e", onCon: "#ffd9f7", tert: "#19f0ff", onTert: "#00282c", tcon: "#0b4a5a", onTcon: "#c4faff",
+      acc: "#19f0ff", g1: "#ff3cc7", g2: "#19f0ff", font: "'Rajdhani', 'Segoe UI', system-ui, sans-serif" }) },
+  retro: { name: "Retro 90s anime", blurb: "Cream paper, thick navy outlines, sticker buttons, sunburst and scanlines", dark: false, flat: true,
+    tokens: pal({ low: "#fdf0d0", lowest: "#ffffff", mid: "#fff8e6", high: "#ffffff", top: "#ffe3b3", ink: "#1d1b3a", dim: "#56537a", line: "#1d1b3a",
+      pri: "#ee2e6b", onPri: "#ffffff", con: "#ffd23f", onCon: "#1d1b3a", tert: "#1d1b3a", onTert: "#fff", tcon: "#2ab7ca", onTcon: "#1d1b3a",
+      acc: "#ee2e6b", g1: "#ee2e6b", g2: "#ee2e6b", font: "'Trebuchet MS', Verdana, system-ui, sans-serif" }) },
+};
+const PICK_KEYS = ["primary", "on-primary", "primary-container", "on-primary-container", "tertiary", "on-tertiary", "tertiary-container", "on-tertiary-container",
+  "inverse-primary", "accent", "gradient-start", "gradient-end"];
+let look = "", lookPick = false, curTheme = null;
+function applyLook(id, pick, save) {
+  look = LOOKS[id] ? id : ""; lookPick = !!pick;
+  const root = document.documentElement;
+  let st = document.getElementById("lookStyle");
+  if (!st) st = el("style", { id: "lookStyle" });
+  document.head.append(st);   // always last, so it wins over the plain theme colours
+  if (!look) { st.textContent = ""; delete root.dataset.look; }
+  else {
+    const L = LOOKS[look], tok = { ...L.tokens };
+    if (lookPick && curTheme) { const t = themeTokens(curTheme.h, curTheme.s)[L.dark ? "dark" : "light"]; for (const k of PICK_KEYS) tok[k] = t[k]; }
+    st.textContent = `:root{color-scheme:${L.dark ? "dark" : "light"};${declTokens(tok)};${L.flat ? FLAT : ""}}`;
+    root.dataset.look = look;
+  }
+  try { localStorage.setItem("look", JSON.stringify({ id: look, pick: lookPick })); } catch {}
+  if (save) fetch("/api/settings", { method: "PUT", body: JSON.stringify({ look, lookPick }) }).catch(() => {});
+}
+try { const l = JSON.parse(localStorage.getItem("look")); if (l?.id) applyLook(l.id, l.pick); } catch {}   // before the first paint
 // The theme's picture takes the left like Nyx does, unless Nyx is there: then it goes right, fading the other way.
 function placeArt() {
   const m = document.querySelector(".mascot");
@@ -978,11 +1119,13 @@ function applyTheme(t) {
   let st = document.getElementById("themeStyle");
   if (!st) { st = el("style", { id: "themeStyle" }); document.head.append(st); }
   st.textContent = t ? themeCss(t.h, t.s) : "";
+  curTheme = t || null;
   const art = document.getElementById("themeArt");
   art.hidden = !t;
   if (t) art.style.setProperty("--art", `url("${t.art || "/api/cover?name=" + encodeURIComponent(t.title)}")`);   // art: the cover of the season you picked
   placeArt();
   try { localStorage.setItem("theme", JSON.stringify(t || null)); } catch {}
+  applyLook(look, lookPick);   // keeps the look on top (and recoloured by the picker if that is on)
 }
 try { const t = JSON.parse(localStorage.getItem("theme")); if (t) applyTheme(t); } catch {}   // before the first paint of the list
 
@@ -1002,6 +1145,31 @@ function dominantColor(img) {
   bins.forEach((b, i) => { const sc = b.w + bins[(i + 1) % 36].w * .5 + bins[(i + 35) % 36].w * .5; if (sc > score) { score = sc; best = i; } });
   const b = bins[best];
   return b.w ? { h: b.h / b.w, s: Math.round(b.s / b.w * 80) } : { h: 260, s: 30 };
+}
+function pickLook() {
+  const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey, true); };
+  const onKey = ev => { if (ev.key === "Escape") { ev.stopImmediatePropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  overlay.onmousedown = ev => { if (ev.target === overlay) close(); };
+  const pick = el("input", { type: "checkbox", checked: lookPick, onchange: () => applyLook(look, pick.checked, true) });
+  const list = el("div", { className: "looks" });
+  const draw = () => {
+    list.replaceChildren(...[["", { name: "Default look", blurb: "The soft purple Animus look" }], ...Object.entries(LOOKS)].map(([id, L]) => {
+      const t = id ? L.tokens : null, sw = t ? [t["surface-container-low"], t["surface-container-high"], t["on-surface"], t.accent, t["primary-container"]] : ["#f4f2fb", "#e9e7f0", "#1c1b21", "#8e74d3", "#e5defe"];
+      const b = elc("button", { type: "button", className: "lookopt" + (look === id ? " on" : ""), onclick: () => { applyLook(id, pick.checked, true); draw(); } },
+        elc("span", { className: "lk-sw" }, ...sw.map(c => el("i", { style: `background:${c}` }))),
+        el("b", { textContent: L.name }), el("small", { textContent: L.blurb }));
+      return b;
+    }));
+  };
+  draw();
+  panel.append(el("h2", { textContent: "Special look" }),
+    el("p", { textContent: "A whole new style with its own colours. Pick one, or go back to the default." }), list,
+    elc("label", { className: "lookpick" }, pick, el("span", { textContent: "Use the colours of the show I picked in “Theme from a show”" })),
+    el("button", { textContent: "Done", onclick: close }));
+  overlay.append(panel);
+  document.body.append(overlay);
 }
 function pickTheme() {
   const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
@@ -1268,7 +1436,8 @@ function backFace(it, li) {
   const body = el("div", { className: "body" });
   const row = el("div", { className: "backbtns" });
   row.append(btn("Change cover", "Change cover (all seasons)", () => changeCover(it), "wide"), remove);
-  body.append(head, meta, notes, row);
+  const syn = infoOf[it.name]?.desc;
+  body.append(head, ...(syn ? [el("div", { className: "synopsis", textContent: syn })] : []), meta, notes, row);
   return [body];
 }
 
@@ -1290,6 +1459,7 @@ function frontFace(it, li) {
   body.append(a);
   const info = infoOf[it.name];
   if (info) body.append(el("div", { className: "meta", textContent: [info.year, ...info.tags.slice(0, 3)].filter(Boolean).join(" · ") }));
+  if (!info?.mal_score && info?.al_score) body.append(el("div", { className: "meta", textContent: `AL ★ ${(info.al_score / 10).toFixed(1)}`, title: "AniList average score (MyAnimeList's replaces it when available)" }));
   if (info?.mal_score || info?.mal_rank || info?.mal_pop) {
     const bits = [info.mal_score && `MAL ★ ${info.mal_score.toFixed(2)}`, info.mal_rank && `Rank #${info.mal_rank.toLocaleString()}`, info.mal_pop && `Popularity #${info.mal_pop.toLocaleString()}`].filter(Boolean);
     body.append(el("div", { className: "meta", textContent: bits.join(" · "), title: "From MyAnimeList: score, overall rank, popularity rank" }));
@@ -1470,7 +1640,8 @@ function gearItems() {
   let host = ""; try { host = new URL(siteSearch).host; } catch {}
   return [
     ...updateGroup(),
-    ["Look", [["theme", "◐", "Theme from a show", theme ? `Now: ${theme}` : "Colours and background art taken from a cover you pick"],
+    ["Look", [["look", "✦", "Special look", look ? `Now: ${LOOKS[look].name}${lookPick ? " (with your picked show's colours)" : ""}` : "Paper / Manga, Neon Tokyo, Retro 90s: a whole new style"],
+      ["theme", "◐", "Theme from a show", theme ? `Now: ${theme}` : "Colours and background art taken from a cover you pick"],
       ["layout", "▭", "Wide cards", wideCards ? "On. Bigger cards with more room and larger buttons" : "Off. The compact grid; turn on for roomier cards"]]],
     ["Streaming", [["site", "▶", "Streaming site", host ? `Now: ${host}` : "The site your ▶ buttons and title links open (not set yet)"]]],
     ["Friends", [["me", "☺", "Your name", me ? `Shown as “${me}” on your recommendations` : "Shown on the recommendations you share"],
@@ -1486,6 +1657,7 @@ function gearItems() {
 function gearAction(act) {
   if (act === "site") askSite();
   else if (act === "theme") pickTheme();
+  else if (act === "look") pickLook();
   else if (act === "me") { const n = prompt("Your name, shown to friends on your recommendations:", me); if (n !== null && n.trim()) setMe(n.trim()); }
   else if (act === "export") exportRecs();
   else if (act === "import") $("friendFile").click();
@@ -1586,6 +1758,39 @@ async function showChangelog() {
   overlay.append(panel);
   document.body.append(overlay);
 }
+
+// ---- Keyboard shortcuts (ignored while typing, or while a menu / window is open).
+const VIEW_KEYS = ["list", "calendar", "discover", "stats"];
+const SHORTCUTS = [["/", "Search"], ["A", "Add an anime"], ["1 2 3 4", "My list, Calendar, Discover, Stats"], ["[  ]", "Previous / next tab"], ["?", "Show this help"]];
+function showShortcuts() {
+  const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey, true); };
+  const onKey = ev => { if (ev.key === "Escape") { ev.stopImmediatePropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  overlay.onmousedown = ev => { if (ev.target === overlay) close(); };
+  const md = el("div", { className: "md" });
+  md.append(el("h2", { textContent: "Keyboard shortcuts" }), ...SHORTCUTS.map(([k, d]) => el("p", { innerHTML: `<b>${k}</b> &nbsp; ${d}` })));
+  panel.append(md, el("button", { textContent: "Close", onclick: close, style: "margin-top:14px" }));
+  overlay.append(panel);
+  document.body.append(overlay);
+}
+document.addEventListener("keydown", ev => {
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.defaultPrevented) return;
+  const t = ev.target;
+  if (t.closest?.("input, textarea, select, [contenteditable]") || openMenu || document.querySelector(".modal, .gearpanel")) return;
+  const k = ev.key;
+  const go = v => { if (v === view) return; view = v; localStorage.setItem("view", v); if (v === "stats") sLog = null; render(); };
+  if (k === "/") {
+    const box = view === "list" ? $("q") : document.querySelector(`#${view} input[type=search]`);
+    if (box) { box.focus(); ev.preventDefault(); }
+  } else if (k === "a" || k === "A") { $("addName").focus(); ev.preventDefault(); }
+  else if (k >= "1" && k <= "4") go(VIEW_KEYS[+k - 1]);
+  else if ((k === "[" || k === "]") && view === "list") {
+    const keys = TABS.map(([x]) => x), i = keys.indexOf(tab);
+    tab = keys[(i + (k === "]" ? 1 : keys.length - 1)) % keys.length];
+    localStorage.setItem("tab2", tab); render();
+  } else if (k === "?") showShortcuts();
+});
 
 // ---- Discover: what is airing (or coming) in a season, pulled from AniList.
 const SEASON_NAMES = ["Winter", "Spring", "Summer", "Fall"];
@@ -1778,7 +1983,7 @@ function epsWatched(it) {
   return n;
 }
 const genresOf = names => { const c = {}; for (const n of names) for (const g of (infoOf[n]?.tags || [])) if (GENRES.has(g)) c[g] = (c[g] || 0) + 1; return Object.entries(c).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])); };
-async function loadLog() { try { sLog = await (await fetch("/api/history")).json(); } catch { sLog = []; } if (view === "stats") renderStats(); }
+async function loadLog() { try { sLog = await (await fetch("/api/history")).json(); } catch { sLog = sLog || []; } if (view === "stats") renderStats(); else if (view === "list") renderContinue(); }
 function hbars(rows, unit = "") {
   const box = el("div"), mx = Math.max(1, ...rows.map(r => r[1]));
   for (const [l, v] of rows) {
@@ -1934,7 +2139,7 @@ $("q").oninput = ev => { q = ev.target.value.toLowerCase(); render(); };
   b.onclick = () => scrollTo({ top: 0, behavior: calm() ? "auto" : "smooth" });
 }
 
-fetch("/api/settings").then(r => r.json()).then(d => { siteSearch = d.search || ""; me = d.me || ""; applyTheme(d.theme || null); }).catch(() => {})
+fetch("/api/settings").then(r => r.json()).then(d => { siteSearch = d.search || ""; me = d.me || ""; applyTheme(d.theme || null); applyLook(d.look || "", d.lookPick); }).catch(() => {})
   .then(() => fetch("/api/items")).then(r => r.json()).then(d => {
     items = d;
     // Older lists can hold "started" shows with no episode (E–); those are not started.

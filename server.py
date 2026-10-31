@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.3.4"
+VERSION = "1.3.5"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -243,7 +243,7 @@ def cover_for(name):
         return ent
 
 
-INFO_QUERY = """query($id:Int){Media(id:$id){id idMal format isAdult seasonYear startDate{year} genres synonyms
+INFO_QUERY = """query($id:Int){Media(id:$id){id idMal format isAdult seasonYear startDate{year} genres synonyms averageScore description(asHtml:false)
   title{romaji english native} tags{name rank isGeneralSpoiler isMediaSpoiler}}}"""
 INFO_DB = os.path.join(ROOT, "data", "info.json")
 INFO_TTL = 30 * 24 * 3600
@@ -378,6 +378,8 @@ def build_info(media_id):
     return {"format": m["format"], "year": m["seasonYear"] or (m["startDate"] or {}).get("year"),
             "rating": code, "ratingText": text, "mal": m.get("idMal"), "adult": m["isAdult"],
             "rated": not m.get("idMal"),   # nothing to ask MAL about without an id
+            "desc": tidy_description(m.get("description")),
+            "al_score": m.get("averageScore"),
             "uncensored": any(UNCENSORED_RE.search(n or "") for n in names),
             "tags": list(dict.fromkeys(m["genres"] + [t["name"] for t in tags[:8]]))}
 
@@ -397,7 +399,7 @@ def info_for(name):
             ent["rated"] = True
         else:
             ent = None
-    if not ent or "format" not in ent or time.time() - ent["at"] > INFO_TTL:
+    if not ent or "format" not in ent or "desc" not in ent or "al_score" not in ent or time.time() - ent["at"] > INFO_TTL:
         try:
             fresh = {"at": time.time(), **build_info(media_id)}
         except Exception:
@@ -409,7 +411,7 @@ def info_for(name):
                 db = load_info()
                 old = db.get(str(media_id)) or {}
                 if old.get("rated") and fresh.get("mal") == old.get("mal"):
-                    fresh.update({k: old[k] for k in ("rating", "ratingText", "rated")})
+                    fresh.update({k: old[k] for k in ("rating", "ratingText", "rated", "mal_score", "mal_rank", "mal_pop") if k in old})
                 db[str(media_id)] = ent = fresh
                 save_info(db)
     want_rating(media_id)
@@ -823,6 +825,18 @@ def relaunch():
 
 
 def changelog_text():
+    """The file keeps every release; the "What's new" window only gets the newest few."""
+    full = changelog_file()
+    if not full:
+        return full
+    parts = re.split(r"(?m)^(?=## )", full)   # the title, then one chunk per release
+    return "".join(parts[:1 + CHANGELOG_SHOWN])
+
+
+CHANGELOG_SHOWN = 5
+
+
+def changelog_file():
     for name in ("CHANGELOG.md", "CHANGELOG.txt"):
         path = os.path.join(ROOT, name)
         if os.path.exists(path):
@@ -1204,6 +1218,12 @@ class Handler(BaseHTTPRequestHandler):
                 if "theme" in req:   # {title, h, s} picked from a cover, or null for the default look
                     t = req["theme"]
                     cur["theme"] = None if not t else {"title": str(t["title"])[:200], "h": float(t["h"]) % 360, "s": min(max(float(t["s"]), 0), 100)}
+                    if t and str(t.get("art", "")).startswith("/api/"):   # the cover of the season that was picked
+                        cur["theme"]["art"] = str(t["art"])[:1000]
+                if "look" in req:   # a special look: one of the page's LOOKS ids, or "" for the default
+                    cur["look"] = req["look"] if req["look"] in ("paper", "neon", "retro") else ""
+                if "lookPick" in req:
+                    cur["lookPick"] = bool(req["lookPick"])
                 os.makedirs(os.path.dirname(SETTINGS), exist_ok=True)
                 with open(SETTINGS, "w", encoding="utf-8") as f:
                     json.dump(cur, f, indent=1)

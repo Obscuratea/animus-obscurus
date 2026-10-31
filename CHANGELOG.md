@@ -1,29 +1,21 @@
 # Animus Obscurus: what's new since your first copy
 
 ## 1.3.2
-**New views**
-- **Calendar:** a week of what's actually airing on AniList, day by day. Shows on your list come first and are highlighted. "Only my list" narrows it down, and long days fold into "Show more".
-- **Stats:** episodes watched, estimated hours, your genres, ratings and status shelves. Pick a year for a recap built from your new watch log (Animus now remembers when you change episodes or statuses; older progress can't be dated).
-- **Wide cards:** turn on **Wide cards** in the gear menu for roomier cards with the poster on the left and bigger buttons. Off by default.
+**New**
+- **Calendar:** see what's airing this week, day by day. Shows on your list are highlighted and shown first.
+- **Stats:** how many episodes and hours you've watched, your favorite genres, and a recap for any year.
+- **Wide cards:** want bigger cards? Turn on "Wide cards" in the gear menu.
 
-**Smoother**
-- The My list / Calendar / Discover / Stats switch and the status tabs now slide a pill between choices with a little jelly bounce.
-
-**Episodes for long shows**
-- **Season and episode buttons use the same themed menu as the rest of the app** instead of the browser's own list.
-- **Every show's episode menu** has a "Go to episode" box: type a number and press Enter. Below it, episodes are grouped in 50s (E1 to E50, E51 to E100, ...), and the group you're on opens first. A short show is simply one group.
-
-**Polish**
-- The gear icon's tooltip and update dot no longer tilt when you hover it; only the cog turns.
+**Nicer to use**
+- Picking an episode is easier: type a number to jump straight to it, or pick from groups of 50.
+- The tabs now glide with a little bounce when you switch.
+- Season and episode menus match the rest of the app.
 
 ## 1.3.1
-**Updates install themselves**
-- **Update now:** when a new version is out, the gear shows a red dot and the menu gets an **Update to vX.Y.Z** button at the top. One click downloads it, checks it, installs it and restarts Animus. Your list and settings are never touched, and a copy of the old files is kept in case anything goes wrong.
-- **Check for updates / Check automatically** (new "Updates" group in the gear menu): look right now, or switch off the once-a-day check. With it off, Animus never contacts GitHub by itself.
-- Updating needs this copy to be v1.3.1 or newer, so friends on 1.3.0 or older do one last manual update.
-
-**Cleaner header**
-- The title is now a big bold **ANIMUS** next to the eye logo, the same height as the logo. (The app is still Animus Obscurus everywhere else.)
+**Updates**
+- When a new version is out, the gear shows a red dot. Open it and tap "Update" and Animus updates itself. Your list is never touched.
+- You can check for updates yourself or turn off the daily check in the gear menu.
+- The title is now a big, bold ANIMUS next to the logo.
 
 ## 1.3.0
 **A tidier menu**

@@ -602,6 +602,84 @@ def discover(season, year):
         return ent
 
 
+# ---- Calendar: what airs in a week (AniList's real schedule, not a projection).
+CAL_DB = os.path.join(ROOT, "data", "calendar.json")
+CAL_QUERY = """query($from:Int,$to:Int,$page:Int){Page(page:$page,perPage:50){pageInfo{hasNextPage}
+  airingSchedules(airingAt_greater:$from,airingAt_lesser:$to,sort:TIME){airingAt episode
+  media{id format episodes isAdult popularity title{romaji english} coverImage{large}}}}}"""
+cal_lock = threading.Lock()
+
+
+def calendar(start, days=7):
+    """Episodes airing from `start` (unix seconds) for `days` days. Saved on disk; a stale copy is used if AniList is down."""
+    key = f"{start}-{days}"
+    with cal_lock:
+        try:
+            with open(CAL_DB, encoding="utf-8") as f:
+                db = json.load(f)
+        except (FileNotFoundError, ValueError):
+            db = {}
+        ent = db.get(key)
+        # this week and later change as schedules are published; a past week never changes
+        ttl = 3600 if start + days * 86400 > time.time() else 30 * 24 * 3600
+        if ent and time.time() - ent["at"] < ttl:
+            return ent
+        rows = []
+        try:
+            for page in range(1, 11):
+                data = gql(CAL_QUERY, {"from": start - 1, "to": start + days * 86400, "page": page}, "Page")
+                for r in data["airingSchedules"]:
+                    m = r["media"]
+                    if m["isAdult"] or m["format"] not in ("TV", "TV_SHORT", "MOVIE", "ONA", "OVA"):
+                        continue
+                    t = m["title"]
+                    rows.append({"id": m["id"], "title": t.get("english") or t["romaji"], "cover": m["coverImage"]["large"],
+                                 "at": r["airingAt"], "ep": r["episode"], "eps": m["episodes"], "format": m["format"], "pop": m["popularity"]})
+                if not data["pageInfo"]["hasNextPage"]:
+                    break
+        except Exception:
+            if ent:
+                return ent
+            raise
+        ent = {"at": time.time(), "items": rows}
+        db[key] = ent
+        for k in [k for k, v in db.items() if time.time() - v["at"] > 60 * 24 * 3600]:   # forget very old weeks
+            del db[k]
+        with open(CAL_DB, "w", encoding="utf-8") as f:
+            json.dump(db, f)
+        return ent
+
+
+# ---- Watch log: one line each time progress or status changes, so a year-in-review can exist. Never read by the list itself.
+HISTORY_DB = os.path.join(ROOT, "data", "history.json")
+history_lock = threading.Lock()
+
+
+def log_history(old, new):
+    before = {i["name"]: i for i in old}
+    now = int(time.time())
+    events = []
+    for it in new:
+        o = before.get(it["name"])
+        if o and o["progress"] == it["progress"] and o["status"] == it["status"]:
+            continue
+        if not o and not it["progress"] and it["status"] == "not started":
+            continue   # just added, nothing watched yet
+        events.append({"t": now, "name": it["name"], "from": o["progress"] if o else "", "to": it["progress"],
+                       "was": o["status"] if o else "", "status": it["status"]})
+    if not events:
+        return
+    with history_lock:
+        try:
+            with open(HISTORY_DB, encoding="utf-8") as f:
+                log = json.load(f)
+        except (FileNotFoundError, ValueError):
+            log = []
+        log = (log + events)[-30000:]
+        with open(HISTORY_DB, "w", encoding="utf-8") as f:
+            json.dump(log, f)
+
+
 # ---- Self-update from GitHub Releases. Only the app files are replaced; data/ is never touched.
 UPDATE_REPO = "Obscuratea/animus-obscurus"
 UPDATE_API = os.environ.get("ANIMUS_UPDATE_API") or f"https://api.github.com/repos/{UPDATE_REPO}/releases/latest"
@@ -882,6 +960,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {"error": "bad season"})
             except Exception as e:
                 return self.send(503, {"error": str(e)})
+        if self.path.startswith("/api/calendar"):
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                start = int(q.get("start", ["0"])[0]); days = int(q.get("days", ["7"])[0])
+                if not 1_000_000_000 < start < 4_000_000_000 or not 1 <= days <= 8:
+                    raise ValueError("bad range")
+                return self.send(200, calendar(start, days))
+            except ValueError:
+                return self.send(400, {"error": "bad range"})
+            except Exception as e:
+                return self.send(503, {"error": str(e)})
+        if self.path == "/api/history":
+            try:
+                with open(HISTORY_DB, encoding="utf-8") as f:
+                    return self.send(200, json.load(f))
+            except (FileNotFoundError, ValueError):
+                return self.send(200, [])
         if self.path == "/api/changelog":
             text = changelog_text()
             return self.send(200, text.encode("utf-8"), "text/plain; charset=utf-8") if text else self.send(404, {"error": "no changelog"})
@@ -1108,7 +1203,15 @@ class Handler(BaseHTTPRequestHandler):
                 "rec": bool(i.get("rec")),
                 "with": str(i.get("with", "")).strip()[:80],
             } for i in items if str(i.get("name", "")).strip()]
+            try:
+                old = read_items()
+            except Exception:
+                old = []
             write_items(items)
+            try:
+                log_history(old, items)
+            except Exception:
+                pass   # the log is a bonus; never let it break saving
         except Exception as e:
             return self.send(400, {"error": str(e)})
         self.send(200, {"ok": True, "count": len(items)})

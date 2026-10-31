@@ -1,6 +1,14 @@
 # Animus Obscurus: what's new since your first copy
 
 ## 1.3.2
+**New views**
+- **Calendar:** a week of what's actually airing on AniList, day by day. Shows on your list come first and are highlighted. "Only my list" narrows it down, and long days fold into "Show more".
+- **Stats:** episodes watched, estimated hours, your genres, ratings and status shelves. Pick a year for a recap built from your new watch log (Animus now remembers when you change episodes or statuses; older progress can't be dated).
+- **Wide cards:** turn on **Wide cards** in the gear menu for roomier cards with the poster on the left and bigger buttons. Off by default.
+
+**Smoother**
+- The My list / Calendar / Discover / Stats switch and the status tabs now slide a pill between choices with a little jelly bounce.
+
 **Episodes for long shows**
 - **Season and episode buttons use the same themed menu as the rest of the app** instead of the browser's own list.
 - **Shows with hundreds of episodes** (One Piece has over 1100) get a "Go to episode" box: type a number and press Enter. Below it, episodes are grouped in 50s (E1 to E50, E51 to E100, ...), and the group you're on opens first.

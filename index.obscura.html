@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animus Obscurus</title>
+<style>
+:root {
+  --bg: #121316; --panel: #191a1e; --line: #2a2c31; --ink: #f2f1ee; --dim: #8b8d93; --accent: #00aa88; --warm: #f2b134;
+  --mono: "Geist Mono", ui-monospace, monospace; --sans: Archivo, Inter, system-ui, sans-serif;
+}
+* { box-sizing: border-box; border-radius: 0; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 var(--sans); }
+/* Mascot sits behind everything, left of the centred cards; the head button toggles gallery mode. */
+:root { --mascot-opacity: .36; }
+.mascot { position: fixed; left: -3vw; bottom: 0; height: 94vh; max-width: 70vw; opacity: var(--mascot-opacity); z-index: 0; pointer-events: none; user-select: none;
+  transition: left .5s ease, transform .5s ease, opacity .5s ease, height .5s ease; }
+body.gallery .mascot { left: 50%; transform: translateX(-50%); opacity: 1; height: 100vh; }
+main { transition: opacity .35s ease, visibility .35s ease; }
+body.gallery main { opacity: 0; visibility: hidden; }
+button.head { position: fixed; right: 16px; top: 16px; z-index: 5; width: 52px; height: 52px; padding: 0; border: 1px solid var(--accent); background: var(--panel); }
+.head span { display: block; width: 100%; height: 100%; overflow: hidden; }
+.head img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; transform: translate(-4px, 6px) scale(1.4); transform-origin: 60% 30%; }
+.head[data-tip]::after { bottom: auto; top: calc(100% + 6px); left: auto; right: 0; transform: none; }
+body.gallery .head { background: var(--accent); }
+.mascot-name { position: fixed; left: 24px; top: 26px; z-index: 4; font: 700 14px var(--mono); letter-spacing: .5em; text-transform: uppercase; color: var(--accent); opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+body.gallery .mascot-name { opacity: 1; }
+@media (max-width: 1230px) { header { padding-right: 60px; } }
+@media (max-width: 700px) { .mascot { height: 60vh; left: 0; } }
+main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 32px 16px 64px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-bottom: 16px; }
+header form.add { flex: 1 1 280px; max-width: 460px; margin: 0 0 0 auto; }
+h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+h1 b { color: var(--accent); }
+.count { font: 12px var(--mono); color: var(--dim); }
+button, input, select { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); padding: 8px 12px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+form.add { display: flex; gap: 8px; }
+form.add input { flex: 1; min-width: 0; }
+form.add button { background: var(--accent); border-color: var(--accent); color: #0b0c0e; font-weight: 700; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.bar input { flex: 1 1 220px; min-width: 140px; }
+.bar select, .bar button { font: 12px var(--mono); }
+.bar select { cursor: pointer; }
+.bar select.on, button.tagbtn.on { border-color: var(--accent); color: var(--accent); }
+.bar .clear { color: var(--dim); }
+.shelf { margin-bottom: 8px; padding: 12px; border: 1px solid var(--line); background: rgba(25, 26, 30, .88); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; max-height: 232px; overflow-y: auto; }
+.shelf { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.shelf[hidden] { display: none; }
+.shelf label { display: flex; align-items: center; gap: 6px; font: 12px var(--mono); cursor: pointer; padding: 2px 0; min-width: 0; }
+.shelf label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shelf label i { font-style: normal; color: var(--dim); margin-left: auto; }
+.shelf input { accent-color: var(--accent); margin: 0; padding: 0; flex: none; }
+.tabs-row { margin-bottom: 16px; }
+.tabs { display: flex; }
+.tabs button { border-right-width: 0; font: 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.tabs button:last-child { border-right-width: 1px; }
+.tabs button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: #0b0c0e; }
+ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+li { background: rgba(25, 26, 30, .55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); display: flex; flex-direction: column; }
+li:hover { border-color: var(--accent); }
+.cover { position: relative; aspect-ratio: 2 / 3; background: var(--line); overflow: hidden; }
+.cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover .ph { position: absolute; inset: 0; display: grid; place-items: center; font: 800 56px var(--sans); color: var(--dim); }
+li.finished .cover img { filter: grayscale(.8) brightness(.6); }
+li.hold .cover img { filter: grayscale(.5) brightness(.8); }
+.badge { position: absolute; left: 0; top: 0; padding: 3px 8px; font: 11px var(--mono); text-transform: uppercase; background: var(--accent); color: #0b0c0e; }
+.badge.q { background: var(--bg); color: var(--dim); }
+.cover .new { position: absolute; left: 8px; top: 8px; width: 14px; height: 14px; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.cover .new::after { bottom: auto !important; top: calc(100% + 8px); left: 0 !important; transform: none !important; }
+.chips { position: absolute; right: 0; top: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.chip { padding: 3px 8px; font: 11px var(--mono); text-transform: uppercase; background: rgba(18,19,22,.9); color: var(--ink); }
+.chip.unc { background: var(--warm); color: #0b0c0e; font-weight: 700; }
+.chip.adult { color: var(--warm); }
+.prog-badge { position: absolute; right: 0; bottom: 0; padding: 3px 8px; font: 12px var(--mono); background: rgba(18,19,22,.9); }
+.body { padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.name { font-weight: 600; font-size: 14px; line-height: 1.25; text-decoration: none; color: inherit; overflow-wrap: anywhere; }
+a.name:hover { color: var(--accent); }
+.meta { font: 12px var(--mono); color: var(--dim); }
+.meta.unc { color: var(--warm); font-weight: 700; }
+.ctrl { display: flex; gap: 4px; margin-top: auto; }
+.ctrl > * { flex: 1; min-width: 0; }
+.ctrl button, .ctrl a.play, .ctrl select { width: 100%; height: 100%; padding: 6px 0; font: 13px var(--mono); text-align: center; }
+.ctrl select { appearance: none; text-align-last: center; cursor: pointer; }
+.blk { background: var(--accent); border-color: var(--accent); color: #0b0c0e; font-weight: 700; }
+.blk option { background: var(--panel); color: var(--ink); font-weight: 400; }
+a.play { display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: var(--panel); color: var(--ink); text-decoration: none; }
+a.play:hover { border-color: var(--accent); color: var(--accent); }
+a.play[aria-disabled=true] { color: var(--dim); pointer-events: none; }
+.icon { color: var(--dim); }
+.wide { width: 100%; padding: 6px 8px; font: 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+button.wide:hover { border-color: #d9534f; color: #d9534f; }
+select.wide { text-transform: none; letter-spacing: 0; }
+[data-tip] { position: relative; }
+[data-tip]::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; pointer-events: none; opacity: 0; z-index: 10;
+  font: 11px var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--accent); padding: 4px 8px; transition: opacity .1s; }
+[data-tip]:hover::after, [data-tip]:focus-within::after { opacity: 1; }
+.ctrl > :first-child[data-tip]::after { left: 0; transform: none; }
+.ctrl > :last-child[data-tip]::after { left: auto; right: 0; transform: none; }
+.empty { padding: 32px 0; color: var(--dim); text-align: center; grid-column: 1 / -1; }
+#status { position: fixed; left: 50%; transform: translateX(-50%); top: 16px; z-index: 6; font: 12px var(--mono); background: var(--panel); border: 1px solid var(--line); padding: 6px 10px; opacity: 0; transition: opacity .2s; }
+#status.show { opacity: 1; } #status.err { border-color: #d9534f; color: #d9534f; }
+/* Soft edges: the cards and panels stay square, small badges and controls are rounded. */
+.badge { left: 8px; top: 8px; padding: 3px 10px; border-radius: 999px; }
+.chips { right: 8px; top: 8px; gap: 4px; }
+.chip { padding: 3px 10px; border-radius: 999px; }
+.prog-badge { right: 8px; bottom: 8px; padding: 3px 10px; border-radius: 999px; }
+.cover .new { border-radius: 50%; }
+.head, .head span { border-radius: 50%; }
+.bar input, .bar select, .bar button, header form.add input, header form.add button { border-radius: 6px; }
+.tabs button:first-child { border-radius: 6px 0 0 6px; }
+.tabs button:last-child { border-radius: 0 6px 6px 0; }
+#status { border-radius: 999px; padding: 6px 14px; }
+[data-tip]::after { border-radius: 6px; }
+</style>
+</head>
+<body>
+<img class="mascot" alt="" hidden>
+<main>
+  <header>
+    <h1>Animus <b>Obscurus</b></h1>
+    <span class="count" id="count"></span>
+    <form class="add" id="addForm">
+      <input id="addName" placeholder="Add an anime…" autocomplete="off" required>
+      <button>Add</button>
+    </form>
+  </header>
+  <div class="bar">
+    <input id="q" type="search" placeholder="Search your list…">
+    <select id="sortBy" aria-label="Sort by"></select>
+    <select id="fYear" aria-label="Year"></select>
+    <select id="fRating" aria-label="Age rating"></select>
+    <button class="tagbtn" id="tagBtn" aria-expanded="false">Tags ▾</button>
+    <button class="clear" id="clearBtn" hidden>Clear</button>
+  </div>
+  <div class="shelf" id="shelf" hidden></div>
+  <div class="tabs tabs-row" id="tabs"></div>
+  <ul id="list"></ul>
+</main>
+<button class="head" id="headBtn" hidden><span><img alt=""></span></button>
+<div class="mascot-name" id="mascotName"></div>
+<div id="status"></div>
+<script>
+const SITE = "https://miruro.cx";
+// Miruro gives every show an opaque id (/watch/<id>/<slug>?ep=<n>) that can't be derived,
+// so you paste a link once per season; "links" in the sheet holds "1=<url>; 2=<url>".
+const parseLinks = str => Object.fromEntries((str || "").split(";").map(x => x.trim()).filter(Boolean)
+  .map(x => [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)]));
+const fmtLinks = obj => Object.entries(obj).filter(([, u]) => u).map(([n, u]) => `${n}=${u}`).join("; ");
+const linkFor = (it, s) => parseLinks(it.links)[s] || "";
+const LINK_RE = /^(https?:\/\/[^/]+)\/(?:watch|info)\/([^/?#]+)(?:\/([^/?#]+))?/i;
+function watchUrl(link, ep) {
+  const m = LINK_RE.exec(link);
+  return m ? `${m[1]}/watch/${m[2]}${m[3] ? "/" + m[3] : ""}?ep=${ep}` : null;
+}
+const STATUSES = [["not started", "Not started"], ["started", "Started"], ["on hold", "On hold"], ["finished", "Finished"]];
+const TABS = [["started", "Started"], ["on hold", "On hold"], ["not started", "Not started"], ["finished", "Finished"], ["all", "All"]];
+let items = [], q = "";
+let tab = localStorage.getItem("tab2");
+if (!TABS.some(([k]) => k === tab)) tab = "started";
+const SORTS = [["az", "A–Z"], ["za", "Z–A"], ["added", "Recently added"], ["year", "Newest year"]];
+let sortBy = localStorage.getItem("sort");
+if (!SORTS.some(([k]) => k === sortBy)) sortBy = "az";
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+const SORT_FNS = {
+  az: byName,
+  za: (a, b) => byName(b, a),
+  added: (a, b) => items.indexOf(b) - items.indexOf(a),    // new titles are appended to the sheet
+  year: (a, b) => (infoOf[b.name]?.year || 0) - (infoOf[a.name]?.year || 0) || byName(a, b),
+};
+const infoOf = {};      // title -> {year, rating, ratingText, uncensored, tags}, false if unavailable
+const filt = { year: "", rating: "", tags: new Set() };
+const RATING_ORDER = ["G", "PG", "PG-13", "R-17+", "R+", "Rx"];
+const UNC_RE = /unc\w*sored|unrated/i;   // "Uncesored" typos count
+const seasonsOf = {};   // title -> [{n, id, episodes}] from AniList, false if unavailable
+const coverBust = {};
+
+const $ = id => document.getElementById(id);
+const isMovie = it => /^movie$/i.test(it.progress);
+const parse = p => { const m = /^S(\d+)(?:\s*E(\d+))?$/i.exec(p); return m ? { s: +m[1], e: +(m[2] || 0) } : null; };
+const fmt = ({ s, e }) => e ? `S${s} E${e}` : `S${s}`;
+const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
+
+function flash(msg, err) {
+  const box = $("status");
+  box.textContent = msg; box.className = "show" + (err ? " err" : "");
+  clearTimeout(flash.t); flash.t = setTimeout(() => box.className = "", 1800);
+}
+
+async function save() {
+  try {
+    const r = await fetch("/api/items", { method: "PUT", body: JSON.stringify(items) });
+    if (!r.ok) throw new Error((await r.json()).error);
+    flash("Saved to sheet");
+  } catch (e) { flash("Save failed: " + e.message, true); }
+}
+
+function edit(it, fn) { fn(it); render(); save(); }
+
+// Season / episode state for one show. Not started reads as S1 with no episode.
+const where = it => parse(it.progress) || { s: 1, e: 0 };
+const seasonCount = it => it.name in seasonsOf && seasonsOf[it.name] ? seasonsOf[it.name].length : null;
+const epCount = (it, s) => seasonsOf[it.name]?.[s - 1]?.episodes ?? null;
+
+function setWhere(it, s, e) {
+  it.progress = e || s > 1 ? fmt({ s, e }) : "";
+  if (!it.progress) it.status = "not started";
+  else if (it.status === "not started" || it.status === "on hold") it.status = "started";
+}
+
+// The episode the play button opens: one past the current one, rolling into the next season.
+function nextEpisode(it) {
+  const list = seasonsOf[it.name];
+  if (isMovie(it)) return { s: 1, e: 1 };
+  let { s, e } = where(it);
+  const count = epCount(it, s);
+  if (count !== null && e >= count) {
+    if (!list || s >= list.length) return null;
+    s++; e = 0;
+  }
+  return { s, e: e + 1 };
+}
+
+// Ask for a Miruro link for one season (any watch or info page of it will do).
+function askLink(it, s) {
+  const v = prompt(`Paste a Miruro link for ${it.name}${isMovie(it) ? "" : ` — Season ${s}`}\n(open the show on miruro.cx and copy the address; any episode works)`, linkFor(it, s));
+  if (v === null) return null;
+  const t = v.trim();
+  if (t && !LINK_RE.test(t)) { flash("That doesn't look like a Miruro watch link", true); return null; }
+  const links = parseLinks(it.links);
+  links[s] = t;
+  edit(it, i => i.links = fmtLinks(links));
+  return t;
+}
+
+// True when AniList shows an episode out that's past the one logged (only for shows being watched).
+function hasNew(it) {
+  if (it.status !== "started" || isMovie(it) || !seasonsOf[it.name]) return false;
+  const { s, e } = where(it);
+  const count = epCount(it, s);
+  if (count === null) return false;
+  return e < count || (epCount(it, s + 1) ?? 0) > 0;
+}
+
+function picker(options, value, tip, onChange) {
+  const sel = el("select", { className: "blk" });
+  sel.setAttribute("aria-label", tip);
+  for (const [v, label] of options) sel.append(new Option(label, v, false, v === value));
+  sel.onchange = () => onChange(+sel.value);
+  const box = el("span");
+  box.dataset.tip = tip;
+  box.append(sel);
+  return box;
+}
+
+function render() {
+  $("tabs").replaceChildren(...TABS.map(([k, label]) => {
+    const b = el("button", { textContent: `${label} ${items.filter(i => k === "all" || i.status === k).length}` });
+    b.setAttribute("aria-pressed", k === tab);
+    b.onclick = () => { tab = k; localStorage.setItem("tab2", k); render(); };
+    return b;
+  }));
+  renderFilters();
+  const shown = items.filter(i => (tab === "all" || i.status === tab) && i.name.toLowerCase().includes(q) && passes(i))
+    .sort(SORT_FNS[sortBy]);
+  $("count").textContent = shown.length === items.length ? `${items.length} titles` : `${shown.length} of ${items.length} titles`;
+  if (!shown.length) $("list").replaceChildren(el("div", { className: "empty", textContent: "Nothing here." }));
+  else $("list").replaceChildren(...shown.map(row));
+  prefetchSeasons(shown);
+  prefetchInfo();
+}
+
+const passes = it => {
+  if (!filt.year && !filt.rating && !filt.tags.size) return true;
+  const f = infoOf[it.name];
+  return !!f && (!filt.year || String(f.year) === filt.year) && (!filt.rating || f.rating === filt.rating)
+    && [...filt.tags].every(t => f.tags.includes(t));
+};
+
+// Year / rating dropdowns and the tag shelf are built from whatever the list's info says.
+function renderFilters() {
+  const known = Object.values(infoOf).filter(Boolean);
+  const fill = (sel, any, values, cur) => {
+    sel.replaceChildren(new Option(any, ""), ...values.map(v => new Option(v, v)));
+    sel.value = values.includes(cur) ? cur : "";
+    sel.classList.toggle("on", !!sel.value);
+    return sel.value;
+  };
+  filt.year = fill($("fYear"), "Any year", [...new Set(known.map(f => f.year).filter(Boolean))].sort((a, b) => b - a).map(String), filt.year);
+  const ratings = new Set(known.map(f => f.rating).filter(Boolean));
+  filt.rating = fill($("fRating"), "Any rating", RATING_ORDER.filter(r => ratings.has(r)), filt.rating);
+  const counts = {};
+  for (const f of known) for (const t of f.tags) counts[t] = (counts[t] || 0) + 1;
+  for (const t of filt.tags) counts[t] ??= 0;
+  const tags = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+  const keep = $("shelf").scrollTop;
+  $("shelf").replaceChildren(...(tags.length ? tags.map(t => {
+    const cb = el("input", { type: "checkbox", checked: filt.tags.has(t) });
+    cb.onchange = () => { cb.checked ? filt.tags.add(t) : filt.tags.delete(t); render(); };
+    const label = el("label");
+    label.append(cb, el("span", { textContent: t }), el("i", { textContent: counts[t] }));
+    return label;
+  }) : [el("span", { className: "meta", textContent: "Loading tags…" })]));
+  $("shelf").scrollTop = keep;
+  $("tagBtn").textContent = `Tags${filt.tags.size ? ` (${filt.tags.size})` : ""} ${$("shelf").hidden ? "▾" : "▴"}`;
+  $("tagBtn").classList.toggle("on", filt.tags.size > 0);
+  $("clearBtn").hidden = !(filt.year || filt.rating || filt.tags.size);
+}
+
+// Year, rating and tags for every title, one at a time (the server caches them).
+let infoBusy = false;
+async function prefetchInfo() {
+  if (infoBusy) return;
+  const it = items.find(i => !(i.name in infoOf));
+  if (!it) return;
+  infoBusy = true;
+  try {
+    const r = await fetch(`/api/info?name=${encodeURIComponent(it.name)}`);
+    infoOf[it.name] = r.ok ? (await r.json()).info || false : false;
+  } catch { infoOf[it.name] = false; }
+  infoBusy = false;
+  // Don't rebuild the page under an open dropdown.
+  if (document.activeElement?.tagName === "SELECT") setTimeout(prefetchInfo, 1500); else render();
+}
+
+// Fetch season/episode data for visible shows one at a time (the server caches it).
+let fetching = false;
+async function prefetchSeasons(shown) {
+  if (fetching) return;
+  const it = shown.find(i => !(i.name in seasonsOf));
+  if (!it) return;
+  fetching = true;
+  try {
+    const r = await fetch(`/api/seasons?name=${encodeURIComponent(it.name)}`);
+    seasonsOf[it.name] = r.ok ? (await r.json()).seasons || false : false;
+  } catch { seasonsOf[it.name] = false; }
+  fetching = false;
+  render();
+}
+
+function btn(text, tip, fn, cls = "") {
+  const b = el("button", { textContent: text, className: cls, onclick: fn });
+  b.dataset.tip = tip; b.setAttribute("aria-label", tip);
+  return b;
+}
+
+function cover(it) {
+  const box = el("div", { className: "cover" });
+  const img = el("img", { loading: "lazy", alt: "" });
+  const bust = coverBust[it.name] ? `&t=${coverBust[it.name]}` : "";
+  // A cover you set wins; otherwise the poster of the season picked in the green block.
+  const season = seasonsOf[it.name]?.[isMovie(it) ? 0 : where(it).s - 1];
+  const coverSrc = it.cover || season?.cover;
+  img.src = coverSrc ? `/api/img?url=${encodeURIComponent(coverSrc)}${bust}` : `/api/cover?name=${encodeURIComponent(it.name)}${bust}`;
+  img.onerror = () => img.remove();
+  box.append(el("div", { className: "ph", textContent: it.name[0].toUpperCase() }), img);
+  if (it.status !== "started") box.append(el("span", { className: "badge" + (it.status === "finished" ? "" : " q"), textContent: it.status }));
+  if (hasNew(it)) {
+    const nx = nextEpisode(it);
+    const sq = el("span", { className: "new" });
+    sq.dataset.tip = `New episode out: S${nx.s} E${nx.e}`;
+    box.append(sq);
+  }
+  const f = infoOf[it.name] || {};
+  // Titled uncensored on AniList, or you wrote it in the notes (typos like "Uncesored" count).
+  const unc = f.uncensored || UNC_RE.test(it.notes);
+  if (unc || f.rating) {
+    const chips = el("div", { className: "chips" });
+    const chip = (text, cls, tip) => { const c = el("span", { className: "chip " + cls, textContent: text }); if (tip) c.title = tip; return c; };
+    if (unc) chips.append(chip("Uncensored", "unc", "Marked uncensored"));
+    if (f.rating) chips.append(chip(f.rating, f.rating === "Rx" || f.rating === "R+" ? "adult" : "", f.ratingText));
+    box.append(chips);
+  }
+  if (it.progress) box.append(el("span", { className: "prog-badge", textContent: it.progress }));
+  return box;
+}
+
+async function changeCover(it) {
+  const v = prompt(`Cover for ${it.name}\n\n• Paste an image URL to use it\n• Or type a title to search AniList\n• Leave blank to pick automatically`, it.cover);
+  if (v === null) return;
+  const t = v.trim();
+  coverBust[it.name] = Date.now();
+  if (/^https?:\/\//i.test(t)) return edit(it, i => i.cover = t);
+  it.cover = "";
+  const r = await fetch("/api/cover", { method: "POST", body: JSON.stringify({ name: it.name, search: t }) });
+  const d = await r.json();
+  if (!r.ok) flash("No match: " + d.error, true); else flash("Cover: " + d.match);
+  delete seasonsOf[it.name]; delete infoOf[it.name];   // the matched series may have changed
+  render(); save();
+}
+
+async function renameItem(it) {
+  const v = prompt("Rename", it.name);
+  const name = (v || "").trim();
+  if (!name || name === it.name) return;
+  if (items.some(i => i !== it && i.name.toLowerCase() === name.toLowerCase())) return flash("Already on the list", true);
+  const old = it.name;
+  try {
+    await fetch("/api/rename", { method: "POST", body: JSON.stringify({ from: old, to: name }) });
+  } catch { return flash("Can't reach server.py", true); }
+  for (const db of [seasonsOf, infoOf, coverBust]) if (old in db) { db[name] = db[old]; delete db[old]; }
+  edit(it, i => i.name = name);
+}
+
+function row(it) {
+  const li = el("li", { className: it.status === "finished" ? "finished" : it.status === "on hold" ? "hold" : "" });
+  const a = el("a", { className: "name", textContent: it.name, target: "_blank", rel: "noopener",
+    href: `${SITE}/search?query=${encodeURIComponent(it.name)}` });
+  a.dataset.tip = "Search on Miruro · Ctrl+click to rename";
+  a.onclick = ev => {
+    if (!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    renameItem(it);
+  };
+  const body = el("div", { className: "body" });
+  body.append(a);
+  const info = infoOf[it.name];
+  if (info) body.append(el("div", { className: "meta", textContent: [info.year, ...info.tags.slice(0, 3)].filter(Boolean).join(" · ") }));
+  if (it.notes) body.append(el("div", { className: "meta" + (UNC_RE.test(it.notes) ? " unc" : ""), textContent: it.notes }));
+
+  const ctrl = el("div", { className: "ctrl" });
+  const { s, e } = where(it);
+  if (isMovie(it)) {
+    ctrl.append(el("span", { className: "blk", textContent: "Movie", style: "padding:6px 0;text-align:center;font:700 13px var(--mono);flex:2" }));
+  } else {
+    // Seasons that exist (from AniList), always including the one you're on.
+    const total = seasonCount(it) || s;
+    const seasons = Array.from({ length: Math.max(total, s) }, (_, i) => [i + 1, `S${i + 1}`]);
+    const count = epCount(it, s);
+    const top = Math.max(count ?? 0, count === null ? e + 12 : 0, e);
+    const eps = [[0, "E–"], ...Array.from({ length: top }, (_, i) => [i + 1, `E${i + 1}`])];
+    ctrl.append(
+      picker(seasons, s, "Choose season", n => edit(it, i => setWhere(i, n, 0))),
+      picker(eps, e, "Choose episode", n => edit(it, i => setWhere(i, s, n))),
+    );
+  }
+  const next = nextEpisode(it);
+  const play = el("a", { className: "play", textContent: "▶", target: "_blank", rel: "noopener" });
+  if (!next) {
+    play.setAttribute("aria-disabled", "true");
+    play.dataset.tip = "No more episodes";
+  } else {
+    const link = linkFor(it, next.s);
+    const label = isMovie(it) ? "the movie" : `S${next.s} E${next.e}`;
+    if (link) {
+      play.href = watchUrl(link, next.e);
+      play.dataset.tip = `Watch ${label} · Shift+click to change link`;
+    } else {
+      play.href = "#";
+      play.dataset.tip = `Paste a Miruro link to watch ${label}`;
+    }
+    play.onclick = ev => {
+      if (ev.shiftKey || !link) {
+        ev.preventDefault();
+        const t = askLink(it, next.s);
+        if (t && !ev.shiftKey) window.open(watchUrl(t, next.e), "_blank", "noopener");
+      }
+    };
+  }
+  ctrl.append(play,
+    btn("✎", "Edit notes", () => {
+      const v = prompt(`Notes for ${it.name}`, it.notes);
+      if (v !== null) edit(it, i => i.notes = v.trim());
+    }, "icon"),
+    btn("🖼", "Change cover (all seasons)", () => changeCover(it), "icon"),
+  );
+
+  const remove = btn("Remove", "Remove from the sheet", () => {
+    if (confirm(`Remove "${it.name}" from the sheet?`)) { items.splice(items.indexOf(it), 1); render(); save(); }
+  }, "wide");
+  const sel = el("select", { className: "wide" });
+  sel.setAttribute("aria-label", "Status");
+  for (const [k, label] of STATUSES) sel.append(new Option(label, k, false, k === it.status));
+  sel.onchange = () => edit(it, i => i.status = sel.value);
+  body.append(ctrl, remove, sel);
+  li.append(cover(it), body);
+  return li;
+}
+
+$("addForm").onsubmit = ev => {
+  ev.preventDefault();
+  const name = $("addName").value.trim();
+  if (!name) return;
+  if (items.some(i => i.name.toLowerCase() === name.toLowerCase())) return flash("Already on the list", true);
+  items.push({ name, progress: "", status: "not started", notes: "", cover: "", links: "" });
+  $("addName").value = "";
+  if (tab !== "all") tab = "not started";
+  render(); save();
+};
+// Her name: shown on the head button's tooltip and as a caption in gallery mode.
+const MASCOT_NAME = "Nyx";
+$("mascotName").textContent = MASCOT_NAME;
+$("headBtn").dataset.tip = `Show ${MASCOT_NAME}`; $("headBtn").setAttribute("aria-label", `Show ${MASCOT_NAME}`);
+
+// A different mascot on each load: every image in assets/ is a candidate.
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+fetch("/api/mascots").then(r => r.json()).then(files => {
+  if (!files.length) return;
+  const last = store.get("mascotLast");
+  const pool = files.length > 1 ? files.filter(f => f !== last) : files;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  store.set("mascotLast", pick);
+  const src = `/assets/${encodeURIComponent(pick)}`;
+  document.querySelector(".mascot").src = src;
+  document.querySelector(".mascot").hidden = false;
+  $("headBtn").querySelector("img").src = src;
+  $("headBtn").hidden = false;
+});
+function toggleGallery(on = !document.body.classList.contains("gallery")) {
+  document.body.classList.toggle("gallery", on);
+  const tip = on ? "Show list" : `Show ${MASCOT_NAME}`;
+  $("headBtn").dataset.tip = tip; $("headBtn").setAttribute("aria-label", tip);
+}
+$("headBtn").onclick = () => toggleGallery();
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") toggleGallery(false); });
+$("tagBtn").onclick = () => {
+  $("shelf").hidden = !$("shelf").hidden;
+  $("tagBtn").setAttribute("aria-expanded", !$("shelf").hidden);
+  renderFilters();
+};
+$("sortBy").replaceChildren(...SORTS.map(([k, label]) => new Option(label, k, false, k === sortBy)));
+$("sortBy").onchange = ev => { sortBy = ev.target.value; localStorage.setItem("sort", sortBy); render(); };
+$("fYear").onchange = ev => { filt.year = ev.target.value; render(); };
+$("fRating").onchange = ev => { filt.rating = ev.target.value; render(); };
+$("clearBtn").onclick = () => { filt.year = filt.rating = ""; filt.tags.clear(); render(); };
+$("q").oninput = ev => { q = ev.target.value.toLowerCase(); render(); };
+
+fetch("/api/items").then(r => r.json()).then(d => { items = d; render(); })
+  .catch(() => flash("Can't reach server.py", true));
+</script>
+</body>
+</html>

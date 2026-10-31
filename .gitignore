@@ -1,0 +1,9 @@
+data/
+__pycache__/
+*.pyc
+assets/old-twin-tails/
+dist/
+.update-backup/
+assets/
+Scripts for Claude/
+CHANGELOG-discord.txt

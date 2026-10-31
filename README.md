@@ -9,6 +9,12 @@ A personal anime tracker that runs on your own computer. No account, no cloud: y
 - **Import your MyAnimeList** export file.
 - **Themes from any show's cover**, backups, and **one-click updates** from GitHub Releases.
 
+## Latest release features
+
+![Animus Obscurus v1.3.1: one-click updates, Discover, MyAnimeList import](docs/latest-release.png)
+
+**[Get v1.3.1](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
+
 ## Run it
 
 Python 3.9+ and nothing else (standard library only):

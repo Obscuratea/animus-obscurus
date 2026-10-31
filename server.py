@@ -664,6 +664,8 @@ def fetch_bytes(url, limit):
 def apply_update():
     """Download, verify and install the update zip, keeping a rollback copy. Returns the new version."""
     st = update_state
+    if os.path.exists(os.path.join(ROOT, ".git")):
+        raise ValueError("this is a git working copy; it is changed with git, not the updater")
     if not update_info()["available"]:
         raise ValueError("no update available")
     for u in (st["zip"], st["sha"]):

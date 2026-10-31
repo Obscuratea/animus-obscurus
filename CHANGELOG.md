@@ -1,5 +1,9 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.3.3
+**Nicer to use**
+- A back-to-top button pops up with a little bounce when you scroll down the page.
+
 ## 1.3.2
 **New**
 - **Calendar:** see what's airing this week, day by day. Shows on your list are highlighted and shown first.

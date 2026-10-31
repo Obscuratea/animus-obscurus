@@ -197,17 +197,14 @@ a.name:hover { color: var(--accent); }
 .meta.unc { color: var(--warm); font-weight: 600; }
 .ctrl { display: flex; gap: 6px; margin-top: auto; }
 .ctrl > * { flex: 1; min-width: 0; }
-.ctrl button, .ctrl a.play, .ctrl select { width: 100%; height: 100%; padding: 7px 0; font: 600 13px var(--sans); text-align: center; }
-.ctrl select { appearance: none; text-align-last: center; cursor: pointer; }
+.ctrl button, .ctrl a.play { width: 100%; height: 100%; padding: 7px 0; font: 600 13px var(--sans); text-align: center; }
 .blk { background: var(--tone); color: var(--on-tone); font-weight: 600; border-radius: 999px; }
-.blk option { background: var(--raised); color: var(--ink); font-weight: 400; }
 a.play { display: flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--raised); color: var(--ink); text-decoration: none; transition: background .15s; }
 a.play:hover { background: var(--accent); color: var(--on-accent); }
 a.play[aria-disabled=true] { color: var(--dim); pointer-events: none; }
 .icon { color: var(--dim); }
 .wide { width: 100%; padding: 7px 12px; font: 500 13px var(--sans); }
 button.wide:hover { background: color-mix(in srgb, var(--danger) 25%, var(--raised)); color: var(--danger); }
-select.wide { text-transform: none; letter-spacing: 0; }
 button.dd { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 7px 8px 7px 14px; font: 500 13px var(--sans); text-align: left; }
 button.dd .caret { color: var(--dim); font-size: 12px; transition: transform .15s; }
 button.dd[aria-expanded=true] { background: var(--tone); color: var(--on-tone); }
@@ -216,6 +213,20 @@ button.dd[aria-expanded=true] .caret { transform: rotate(180deg); color: inherit
   background: color-mix(in srgb, var(--mat-surface-container-high) 94%, transparent); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 14px 36px #0006, 0 0 0 1px var(--line); }
 .menu.up { transform-origin: bottom; }
+.menu.big { width: 300px; padding: 10px; }
+.menu.big .jump { position: sticky; top: -10px; z-index: 1; margin: -10px -10px 0; padding: 10px 10px 6px; background: var(--raised); border-radius: 18px 18px 0 0; }
+.menu.big .jump input { width: 100%; background: var(--well); border: 0; border-radius: 999px; padding: 9px 16px; outline: none; font: 500 13px var(--sans); color: var(--ink); }
+.menu.big .jump input:focus { box-shadow: 0 0 0 2px var(--accent); }
+.menu.big .opt, .menu.big .ghead { padding: 8px 12px; border-radius: 12px; cursor: pointer; margin-top: 4px; color: var(--ink); }
+.menu.big .opt:hover, .menu.big .ghead:hover { background: var(--raised); }
+.menu.big .opt.sel, .menu.big .ghead.here { background: var(--tone); color: var(--on-tone); font-weight: 600; }
+.menu.big .ghead::after { content: "▾"; float: right; color: var(--dim); }
+.menu.big .ghead[aria-expanded=true]::after { content: "▴"; }
+.menu.big .ggrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 6px 2px 4px; }
+.menu.big .ggrid[hidden] { display: none; }
+.menu.big .ggrid button { border: 0; background: var(--raised); border-radius: 999px; padding: 6px 0; font: 500 12px var(--sans); color: var(--ink); cursor: pointer; }
+.menu.big .ggrid button:hover { background: var(--accent); color: var(--on-accent); }
+.menu.big .ggrid button.sel { background: var(--tone); color: var(--on-tone); font-weight: 700; }
 .menu .note { padding: 8px 12px 4px; color: var(--dim); font-size: 12px; border-top: 1px solid var(--line); margin-top: 4px; }
 form.add { position: relative; }
 .suggest { position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 15; padding: 6px; border-radius: 18px; font: 500 13px var(--sans);
@@ -244,14 +255,15 @@ body[data-view=discover] .bar, body[data-view=discover] .tabs-row, body[data-vie
 body[data-view=discover] #list, body[data-view=discover] #count { display: none; }
 body:not([data-view=discover]) #discover { display: none; }
 #gear { position: fixed; right: 18px; top: 78px; z-index: 6; width: 52px; height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
-  background: var(--raised); color: var(--ink); box-shadow: 0 4px 14px #0003; opacity: 0; transition: opacity .2s, background .15s, transform .3s var(--mat-easing); }
+  background: var(--raised); color: var(--ink); box-shadow: 0 4px 14px #0003; opacity: 0; transition: opacity .2s, background .15s; }
 #gear.ready { opacity: 1; }
 #gear .dot { display: none; position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 3px var(--raised); }
 #gear.has-update .dot { display: block; }
 .gearpanel .it.upd b { color: var(--accent); }
 body.nomascot #gear { top: 16px; }
 #gear svg { width: 26px; height: 26px; fill: currentColor; }
-#gear:hover { transform: rotate(40deg); }
+#gear svg { transition: transform .3s var(--mat-easing); }
+#gear:hover svg { transform: rotate(40deg); }
 #gear[aria-expanded=true] { background: var(--tone); color: var(--on-tone); }
 body.gallery #gear { opacity: 0; pointer-events: none; }
 #gear[data-tip]::after { bottom: auto; top: 50%; left: auto; right: calc(100% + 10px); transform: translateY(-50%); }
@@ -568,6 +580,14 @@ function closeMenu(refocus) {
   anchor.setAttribute("aria-expanded", "false");
   if (refocus) anchor.focus();
 }
+function placeMenu(box, b) {
+  const r = b.getBoundingClientRect();
+  box.style.minWidth = `${r.width}px`; box.style.left = `${Math.max(8, Math.min(r.left, innerWidth - box.offsetWidth - 8))}px`;
+  const up = r.bottom + box.offsetHeight + 14 > innerHeight && r.top > box.offsetHeight + 14;
+  box.classList.toggle("up", up);
+  box.style.top = `${up ? r.top - box.offsetHeight - 6 : r.bottom + 6}px`;
+  b.setAttribute("aria-expanded", "true");
+}
 function popMenu(b, options, value, onPick, notes = []) {
   const was = openMenu?.anchor === b;
   closeMenu();
@@ -583,12 +603,7 @@ function popMenu(b, options, value, onPick, notes = []) {
   });
   box.append(...rows, ...notes.map(t => el("div", { className: "note", textContent: t })));
   document.body.append(box);
-  const r = b.getBoundingClientRect();
-  box.style.minWidth = `${r.width}px`; box.style.left = `${Math.max(8, Math.min(r.left, innerWidth - box.offsetWidth - 8))}px`;
-  const up = r.bottom + box.offsetHeight + 14 > innerHeight && r.top > box.offsetHeight + 14;
-  box.classList.toggle("up", up);
-  box.style.top = `${up ? r.top - box.offsetHeight - 6 : r.bottom + 6}px`;
-  b.setAttribute("aria-expanded", "true");
+  placeMenu(box, b);
   openMenu = { box, anchor: b, rows, at: Math.max(0, options.findIndex(([v]) => v === value)) };
   const mark = i => { openMenu.at = i; rows.forEach((o, j) => o.classList.toggle("active", j === i)); rows[i].scrollIntoView({ block: "nearest" }); };
   rows.forEach((o, j) => o.onmouseenter = () => mark(j));
@@ -605,6 +620,7 @@ function dropdown(options, value, label, onPick, cls = "") {
 document.addEventListener("pointerdown", ev => { if (openMenu && !openMenu.box.contains(ev.target) && !openMenu.anchor.contains(ev.target)) closeMenu(); });
 document.addEventListener("keydown", ev => {
   if (!openMenu) return;
+  if (openMenu.custom) { if (ev.key === "Escape") { closeMenu(true); ev.stopImmediatePropagation(); } return; }   // custom menus handle their own keys
   const n = openMenu.rows.length;
   if (ev.key === "Escape") { closeMenu(true); ev.stopImmediatePropagation(); }
   else if (ev.key === "ArrowDown") { openMenu.mark((openMenu.at + 1) % n); ev.preventDefault(); }
@@ -615,15 +631,56 @@ document.addEventListener("keydown", ev => {
 addEventListener("resize", () => closeMenu());
 addEventListener("scroll", ev => { if (openMenu && !openMenu.box.contains(ev.target)) closeMenu(); }, true);
 
+// Season / episode button: a themed menu instead of the browser's own list.
+// Long shows (One Piece has 1000+ episodes) get a "go to episode" box and 50-episode groups instead of one endless list.
+const BIG_LIST = 40, GROUP = 50;
 function picker(options, value, tip, onChange) {
-  const sel = el("select", { className: "blk" });
-  sel.setAttribute("aria-label", tip);
-  for (const [v, label] of options) sel.append(new Option(label, v, false, v === value));
-  sel.onchange = () => onChange(+sel.value);
+  const b = el("button", { type: "button", className: "blk" });
+  b.setAttribute("aria-haspopup", "listbox"); b.setAttribute("aria-expanded", "false"); b.setAttribute("aria-label", tip);
+  b.textContent = (options.find(([v]) => v === value) || [, ""])[1];
+  b.onclick = () => options.length > BIG_LIST ? bigMenu(b, options, value, onChange) : popMenu(b, options, value, onChange);
   const box = el("span");
   box.dataset.tip = tip;
-  box.append(sel);
+  box.append(b);
   return box;
+}
+function bigMenu(b, options, value, onPick) {
+  const was = openMenu?.anchor === b;
+  closeMenu();
+  if (was) return;
+  const nums = options.filter(([v]) => v > 0).map(([v, l]) => [v, l]), top = nums.length, prefix = (nums[0]?.[1] || "E1").replace(/\d+$/, "");
+  const box = el("div", { className: "menu big" });
+  const pick = v => { closeMenu(true); if (v !== value) onPick(v); };
+  const jump = el("input", { type: "number", min: 1, max: top, placeholder: `Go to ${prefix === "E" ? "episode" : "number"} (1 to ${top})` });
+  jump.setAttribute("aria-label", "Go to episode number");
+  jump.onkeydown = ev => {
+    if (ev.key !== "Enter") return;
+    const n = parseInt(jump.value, 10);
+    if (n >= 1 && n <= top) pick(n); else { jump.value = ""; jump.placeholder = `Pick 1 to ${top}`; }
+    ev.preventDefault();
+  };
+  const none = options.find(([v]) => v === 0);
+  const jw = el("div", { className: "jump" }); jw.append(jump); box.append(jw);
+  if (none) { const o = el("div", { className: "opt" + (value === 0 ? " sel" : ""), textContent: none[1] === "E–" ? "Not started (E–)" : none[1], onclick: () => pick(0) }); box.append(o); }
+  const groups = Math.ceil(top / GROUP), cur = Math.max(1, Math.ceil(value / GROUP));
+  let curHead = null;
+  for (let g = 1; g <= groups; g++) {
+    const lo = (g - 1) * GROUP + 1, hi = Math.min(g * GROUP, top), open = g === cur;
+    const head = el("div", { className: "ghead", textContent: `${prefix}${lo} to ${prefix}${hi}` });
+    const grid = el("div", { className: "ggrid", hidden: !open });
+    head.setAttribute("aria-expanded", open);
+    if (value >= lo && value <= hi) { head.classList.add("here"); curHead = head; }
+    head.onclick = () => { grid.hidden = !grid.hidden; head.setAttribute("aria-expanded", !grid.hidden); };
+    const fill = () => { if (grid.childElementCount) return; for (let n = lo; n <= hi; n++) grid.append(el("button", { type: "button", className: n === value ? "sel" : "", textContent: n, onclick: () => pick(n) })); };
+    if (open) fill();
+    const oldClick = head.onclick; head.onclick = () => { fill(); oldClick(); };
+    box.append(head, grid);
+  }
+  document.body.append(box);
+  placeMenu(box, b);
+  openMenu = { box, anchor: b, rows: [], at: 0, custom: true, mark() {} };
+  (curHead || box).scrollIntoView({ block: "nearest" });
+  jump.focus({ preventScroll: true });
 }
 
 function render() {

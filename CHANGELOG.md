@@ -1,5 +1,13 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.3.2
+**Episodes for long shows**
+- **Season and episode buttons use the same themed menu as the rest of the app** instead of the browser's own list.
+- **Shows with hundreds of episodes** (One Piece has over 1100) get a "Go to episode" box: type a number and press Enter. Below it, episodes are grouped in 50s (E1 to E50, E51 to E100, ...), and the group you're on opens first.
+
+**Polish**
+- The gear icon's tooltip and update dot no longer tilt when you hover it; only the cog turns.
+
 ## 1.3.1
 **Updates install themselves**
 - **Update now:** when a new version is out, the gear shows a red dot and the menu gets an **Update to vX.Y.Z** button at the top. One click downloads it, checks it, installs it and restarts Animus. Your list and settings are never touched, and a copy of the old files is kept in case anything goes wrong.

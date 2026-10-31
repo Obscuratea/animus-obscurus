@@ -31,12 +31,9 @@ Your data (list, covers, settings) is stored in the `data/` folder and is never 
 
 When a new release is out, the gear icon gets a red dot and its menu shows **Update to vX.Y.Z**. One click downloads it, verifies its SHA-256 checksum, replaces only the app files and restarts. You can turn the daily check off in the same menu.
 
-## Building a release
+## Building it yourself
 
-```
-python3 packaging/build_windows.py   # full Windows zip + update zip + checksum into dist/
-python3 packaging/release.py         # publishes them as a GitHub Release (needs `gh`)
-```
+Want to build the Windows zip or make your own fork's release? See [docs/BUILDING.md](docs/BUILDING.md).
 
 ## Support development
 

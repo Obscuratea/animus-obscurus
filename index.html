@@ -1076,6 +1076,7 @@ function matchDoubt(it) {
   if (!m || m.manual || m.ok) return "";
   if (m.none) return "Not found";
   if (MINOR_FMT.has(m.fmt) && !MINOR_RE.test(it.name)) return `Matched to ${{ SPECIAL: "a special", OVA: "an OVA", MUSIC: "a music video", TV_SHORT: "a short" }[m.fmt]}`;
+  if (m.fmt && !MINOR_FMT.has(m.fmt) && MINOR_RE.test(it.name)) return `No separate entry found, matched to the ${m.fmt === "MOVIE" ? "movie" : "main series"}`;
   if (typeof m.conf === "number" && m.conf < 0.72) return "Title is only a loose fit";
   return "";
 }
@@ -1789,10 +1790,19 @@ function row(it) {
   return li;
 }
 
+// The title of the season being watched, when it isn't the one the list name stands for ("Initial D 1st Stage" on S2).
+function seasonTitle(it) {
+  const p = parseProg(it.progress), ss = seasonsOf[it.name], id = matchOf[it.name]?.id;
+  if (!p || !ss || !ss[p.s - 1] || !id) return null;
+  const home = ss.findIndex(x => x.parts.some(q => q.id === id));
+  return home >= 0 && home !== p.s - 1 ? shownTitle(ss[p.s - 1]) : null;
+}
+
 function frontFace(it, li) {
-  const a = el("a", { className: "name", textContent: shownName(it), target: "_blank", rel: "noopener",
+  const st = seasonTitle(it);
+  const a = el("a", { className: "name", textContent: st || shownName(it), target: "_blank", rel: "noopener",
     href: siteSearch ? searchUrl(it.name) : "#" });
-  a.dataset.tip = (siteSearch ? "Search on your site" : "Set your streaming site") + " · Ctrl+click to rename";
+  a.dataset.tip = (st ? `On your list as “${it.name}” · ` : "") + (siteSearch ? "Search on your site" : "Set your streaming site") + " · Ctrl+click to rename";
   a.onclick = ev => {
     if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); renameItem(it); }
     else if (!siteSearch) { ev.preventDefault(); askSite(); }

@@ -157,14 +157,15 @@ QUERY = """query($s:String){Media(search:$s,type:ANIME){id format seasonYear sta
 ID_QUERY = """query($id:Int){Media(id:$id,type:ANIME){id format seasonYear startDate{year} title{romaji english} coverImage{large}}}"""
 SEARCH_QUERY = """query($s:String){Page(perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){
   id format seasonYear title{romaji english} coverImage{medium}}}}"""
-SEASON_FIELDS = ("id format status episodes title{romaji english} coverImage{large} nextAiringEpisode{episode airingAt} "
-                 "relations{edges{relationType node{id format}}}")
+SEASON_FIELDS = ("id format status episodes title{romaji english native} coverImage{large} nextAiringEpisode{episode airingAt} "
+                 "relations{edges{relationType node{id format title{romaji english}}}}")
 SEASON_QUERY = "query($id:Int){Media(id:$id){" + SEASON_FIELDS + "}}"
 SEASONS_DB = os.path.join(ROOT, "data", "seasons.json")
-SEASONS_V = 2             # bump when the shape or meaning of cached seasons changes
+SEASONS_V = 3             # bump when the shape or meaning of cached seasons changes
 AIRING_TTL = 3 * 3600     # airing shows gain episodes weekly
 SEASONS_TTL = 24 * 3600   # a day: a newly announced sequel should show up soon
-TV = ("TV", "TV_SHORT")
+SEASON_FORMATS = ("TV", "TV_SHORT", "ONA")   # entries that count as a season
+BRIDGE_FORMATS = ("MOVIE", "OVA")             # walked through to reach the next season, not listed
 rate_lock = threading.Lock()
 next_slot = [0.0]
 
@@ -224,13 +225,19 @@ def search_terms(name):
     """The title as written, then looser versions (sheet names carry extras like ': Netflix')."""
     loose = re.sub(r"\s*[:\-–]\s*(netflix|season\s*\d+|s\d+).*$", "", name, flags=re.I)
     bare = SEASON_WORDS.sub("", name).strip()   # "Haikyu!! Second Season" -> "Haikyu!!" (the season is picked by number after)
-    return list(dict.fromkeys(t for t in [name, loose, bare, name.split(":")[0].strip()] if t))
+    # AniList finds nothing for "My Little Monster OVA"; the format words still steer the pick (score_candidate sees the full name)
+    plain = " ".join(re.sub(r"[(\[]\s*[)\]]", " ", FORMAT_WORDS.sub(" ", name)).split()).strip(" :-–")
+    unnumbered = re.sub(r"\s+(\d{1,2}|ii|iii|iv)$", "", bare, flags=re.I)   # "Kamisama Kiss 2" is "Kamisama Kiss◎" on AniList
+    return list(dict.fromkeys(t for t in [name, loose, plain, bare, unnumbered, name.split(":")[0].strip()] if t))
+
+
+FORMAT_WORDS = re.compile(r"\b(?:the\s+)?(?:ova|oav|oad|ona|specials?|recap|movies?|film|tv\s+series|tv)\b", re.I)
 
 
 # ---- Matching a list name to the right AniList entry. The name on the list is never changed; only the match behind it.
 CAND_FIELDS = "id format seasonYear startDate{year} title{romaji english native} synonyms coverImage{large}"
 CAND_QUERY = "query($s:String){Page(perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){" + CAND_FIELDS + "}}}"
-MATCH_V = 2   # bump when matching improves, so automatic matches are re-checked once
+MATCH_V = 3   # bump when matching improves, so automatic matches are re-checked once
 MINOR_FORMATS = ("SPECIAL", "OVA", "MUSIC", "TV_SHORT")
 MINOR_WORDS = re.compile(r"\b(ova|oad|specials?|recap|shorts?|chibi|pilot|mini|music|pv|omake|picture drama)\b", re.I)
 MOVIE_WORDS = re.compile(r"\b(movie|film|gekijouban)\b", re.I)
@@ -273,10 +280,29 @@ def title_likeness(a, b):
     return r
 
 
+SERIES_GENERIC = {"the", "and", "season", "seasons", "part", "cour", "stage", "final", "first", "second", "third", "fourth",
+                  "fifth", "new", "series", "movie", "special", "specials", "chapter", "arc", "story", "end", "no", "wa", "tv"}
+
+
+def same_series(a, b):
+    """Whether two AniList titles name the same series. A prequel link can cross into another one
+    (MF Ghost's prequel is Initial D Final Stage); those are kept apart."""
+    first = lambda t: next((w for w in t.split() if w not in ("the", "a", "an")), t)
+    words = lambda t: [w for w in t.split() if len(w) >= 3 and w not in SERIES_GENERIC]
+    for x in {norm_title(t) for t in a.values() if t}:
+        for y in {norm_title(t) for t in b.values() if t}:
+            if first(x) == first(y) or difflib.SequenceMatcher(None, x, y).ratio() >= .6:
+                return True
+            if any(u in v or v in u for u in words(x) for v in words(y)):   # 'monogatari' in 'nisemonogatari'
+                return True
+    return False
+
+
 def score_candidate(base, year, kind, cand, rank):
     """How well one AniList result fits a name: title likeness, then format, season number, year and AniList's own order."""
-    n = norm_title(base)
-    titles = [t for t in [cand["title"].get(k) for k in ("english", "romaji", "native")] + (cand.get("synonyms") or []) if t]
+    said = {"OVA": r"\b(ova|oad|oav)\b", "SPECIAL": r"\bspecials?\b", "MUSIC": r"\b(music|pv)\b"}
+    n = norm_title(re.sub("|".join(said.values()), " ", base, flags=re.I)) or norm_title(base)   # "Toradora! OVA" is compared as "Toradora!"
+    titles =[t for t in [cand["title"].get(k) for k in ("english", "romaji", "native")] + (cand.get("synonyms") or []) if t]
     sim, best = max(((title_likeness(n, norm_title(t)), t) for t in titles), default=(0, ""))
     s = sim - .03 * rank
     fmt = cand.get("format")
@@ -286,6 +312,8 @@ def score_candidate(base, year, kind, cand, rank):
         s += .12 if fmt == "MOVIE" else 0
     elif MINOR_WORDS.search(base):
         s += .05 if fmt in MINOR_FORMATS else 0
+        if any(re.search(p, base, re.I) for p in said.values()):
+            s += .1 if fmt in said and re.search(said[fmt], base, re.I) else 0 if fmt in MINOR_FORMATS else -.08   # the OVA over the special or the series
     else:
         s += FORMAT_PRIOR.get(fmt, 0)   # a plain name means the show itself, not its specials or shorts
     nn, tn = season_numbers(base), season_numbers(best)
@@ -349,7 +377,8 @@ def fetch_cover(name, search=None, media_id=None, kind=None):
 
 def cover_retry(ent):
     """A title AniList didn't know (or that failed before this check existed) is looked up again after a while."""
-    return ent is not None and not ent.get("file") and not ent.get("manual") and time.time() - ent.get("at", 0) > NEG_RETRY
+    return (ent is not None and not ent.get("file") and not ent.get("manual")
+            and (ent.get("v") != MATCH_V or time.time() - ent.get("at", 0) > NEG_RETRY))   # matching got better: ask again now
 
 
 def cover_for(name):
@@ -579,23 +608,37 @@ def build_seasons(media_id, nodes=None):
             nodes[i] = gql(SEASON_QUERY, {"id": i})
         return nodes[i]
 
-    def related(n, kind):
-        return [e["node"]["id"] for e in n["relations"]["edges"]
-                if e["relationType"] == kind and e["node"]["format"] in TV]
+    def step(i, kind, seen):
+        """The next season along `kind` links, passing through up to two movies or OVAs
+        (Initial D goes Second Stage, Third Stage the movie, Fourth Stage)."""
+        for _ in range(3):
+            n = node(i)
+            rel = [(e["node"]["id"], e["node"]["format"]) for e in n["relations"]["edges"]
+                   if e["relationType"] == kind and e["node"]["id"] not in seen and same_series(n["title"], e["node"].get("title") or {})]
+            hit = [x for x, f in rel if f in SEASON_FORMATS]
+            if hit:
+                return hit[0]
+            via = [x for x, f in rel if f in BRIDGE_FORMATS]
+            if not via:
+                return None
+            i = via[0]
+            seen.add(i)
+        return None
 
-    cur = media_id
+    cur, back = media_id, {media_id}
     for _ in range(12):
-        pre = related(node(cur), "PREQUEL")
-        if not pre:
+        pre = step(cur, "PREQUEL", back)
+        if pre is None:
             break
-        cur = pre[0]
+        cur = pre
+        back.add(cur)
     chain, seen = [cur], {cur}
     for _ in range(15):
-        nxt = [i for i in related(node(chain[-1]), "SEQUEL") if i not in seen]
-        if not nxt:
+        nxt = step(chain[-1], "SEQUEL", seen)
+        if nxt is None:
             break
-        chain.append(nxt[0])
-        seen.add(nxt[0])
+        chain.append(nxt)
+        seen.add(nxt)
     # AniList files each cour as its own entry; fold "Part 2" / "Cour 2" into the season before it.
     groups = []
     for i in chain:
@@ -604,12 +647,13 @@ def build_seasons(media_id, nodes=None):
         if groups and re.search(r"\b(part|cour)\s*[2-9]\b|second half|2nd cour", title, re.I):
             groups[-1]["parts"].append({"id": i, "episodes": episode_count(m)})
         else:
-            groups.append({"title": title, "parts": [{"id": i, "episodes": episode_count(m)}]})
+            groups.append({"title": title, "ro": m["title"].get("romaji") or title, "jp": m["title"].get("native") or title,
+                           "parts": [{"id": i, "episodes": episode_count(m)}]})
     out = []
     for n, g in enumerate(groups, 1):
         known = [p["episodes"] for p in g["parts"] if p["episodes"] is not None]  # unreleased parts count as 0
         nxt = [nodes[p["id"]]["nextAiringEpisode"] for p in g["parts"] if nodes[p["id"]].get("nextAiringEpisode")]
-        out.append({"n": n, "title": g["title"], "parts": g["parts"],
+        out.append({"n": n, "title": g["title"], "ro": g["ro"], "jp": g["jp"], "parts": g["parts"],
                     "next": {"episode": nxt[0]["episode"], "at": nxt[0]["airingAt"]} if nxt else None,
                     "cover": nodes[g["parts"][0]["id"]]["coverImage"]["large"],
                     "episodes": sum(known) if known else None,
@@ -1289,7 +1333,8 @@ def resolve_seasons(names, covers):
             if m:
                 nodes[i] = m
                 frontier.update(e["node"]["id"] for e in m["relations"]["edges"]
-                                if e["relationType"] in ("PREQUEL", "SEQUEL") and e["node"]["format"] in TV)
+                                if e["relationType"] in ("PREQUEL", "SEQUEL") and e["node"]["format"] in SEASON_FORMATS + BRIDGE_FORMATS
+                                and same_series(m["title"], e["node"].get("title") or {}))
     built = {}
     for n in names:
         try:

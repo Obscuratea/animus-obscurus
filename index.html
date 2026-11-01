@@ -513,6 +513,18 @@ textarea.notes:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .empty { padding: 32px 0; color: var(--dim); text-align: center; grid-column: 1 / -1; }
 #status { position: fixed; left: 50%; transform: translateX(-50%); top: 16px; z-index: 6; font: 500 13px var(--sans); background: var(--mat-inverse-surface); color: var(--mat-inverse-on-surface);
   border-radius: 999px; padding: 8px 18px; opacity: 0; transition: opacity .2s; box-shadow: 0 8px 24px #0005; }
+#resolvePill { position: fixed; left: 18px; bottom: 18px; z-index: 6; display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-radius: 999px;
+  background: var(--raised); color: var(--ink); box-shadow: 0 4px 14px #0003; font: 600 13px var(--sans); }
+#resolvePill[hidden] { display: none; }
+#resolvePill::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.matched { font-size: 12px; color: var(--dim); margin: -2px 0 2px; }
+.matched a { color: inherit; }
+.mlist { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 14px; }
+.mrow { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 16px; background: var(--raised); }
+.mrow img, .mrow .ph { width: 44px; height: 62px; object-fit: cover; border-radius: 8px; flex: none; display: grid; place-items: center; background: var(--well); font-weight: 700; }
+.mrow .mi { flex: 1; min-width: 0; } .mrow .mi b { display: block; } .mrow .mi small { display: block; color: var(--dim); font-size: 12.5px; }
+.mrow .why { display: inline-block; margin-top: 4px; padding: 2px 10px; border-radius: 999px; font: 600 11px var(--sans); background: var(--mat-tertiary-container); color: var(--mat-on-tertiary-container); }
 #status.show { opacity: 1; } #status.err { background: var(--danger); color: #fff; }
 
 .looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 16px 0; }
@@ -619,6 +631,7 @@ html[data-look=retro] .tabs .thumb { box-shadow: 0 0 0 3px #1d1b3a; }
 <input type="file" id="malFile" accept=".xml,.gz" hidden>
 <input type="file" id="apFile" accept=".json" hidden>
 <div id="status"></div>
+<div id="resolvePill" role="status" hidden></div>
 <script>
 // Any streaming site works. Each season stores one episode link with {ep} where the episode
 // number goes ("1=https://site/watch/show-ep-{ep}; 2=..."); it is made from a pasted link.
@@ -648,7 +661,7 @@ function toTemplate(url, ep) {
 }
 const searchUrl = name => siteSearch.split("{q}").join(encodeURIComponent(name));
 const STATUSES = [["not started", "Not started"], ["started", "Started"], ["on hold", "On hold"], ["finished", "Finished"], ["dropped", "Dropped"]];
-const TABS = [["started", "Started"], ["on hold", "On hold"], ["not started", "Not started"], ["finished", "Finished"], ["dropped", "Dropped"], ["recs", "Recommended"], ["all", "All"], ["airing", "Airing"]];
+const TABS = [["started", "Started"], ["on hold", "On hold"], ["not started", "Not started"], ["upcoming", "Upcoming"], ["finished", "Finished"], ["dropped", "Dropped"], ["recs", "Recommended"], ["all", "All"], ["airing", "Airing"]];
 let items = [], q = "";
 let tab = localStorage.getItem("tab2");
 if (!TABS.some(([k]) => k === tab)) tab = "started";
@@ -719,6 +732,7 @@ const IC = {
   play: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z",
   history: "M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
   up: "M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z",
+  search: "M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
   translate: "M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z",
 };
 function ico(name) {
@@ -738,7 +752,7 @@ function ib(icon, text, props = {}) {
 function flash(msg, err) {
   const box = $("status");
   box.textContent = msg; box.className = "show" + (err ? " err" : "");
-  clearTimeout(flash.t); flash.t = setTimeout(() => box.className = "", 1800);
+  clearTimeout(flash.t); flash.t = setTimeout(() => box.className = "", err ? 4500 : 1800);   // errors stay long enough to read
 }
 
 async function save() {
@@ -746,6 +760,7 @@ async function save() {
     const r = await fetch("/api/items", { method: "PUT", body: JSON.stringify(items) });
     if (!r.ok) throw new Error((await r.json()).error);
     flash("Saved to sheet");
+    clearTimeout(knownTimer); knownTimer = setTimeout(loadKnown, 6000);   // new names get matched in the background
     if (sLog !== null) loadLog();
   } catch (e) { flash("Save failed: " + e.message, true); }
 }
@@ -986,10 +1001,10 @@ function render() {
   const pinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
   const soonest = (a, b) => airing(a).at - airing(b).at;
   const shown = tab === "airing" ? items.filter(i => isAiring(i) && ok(i)).sort((a, b) => pinFirst(a, b) || soonest(a, b))
-    : items.filter(i => (tab === "all" || (tab === "recs" ? i.rec : i.status === tab)) && ok(i)).sort((a, b) => pinFirst(a, b) || SORT_FNS[sortBy](a, b));
+    : items.filter(i => inTab(i, tab) && ok(i)).sort((a, b) => pinFirst(a, b) || SORT_FNS[sortBy](a, b));
   renderActions();
   renderContinue();
-  if (!shown.length) $("list").replaceChildren(el("div", { className: "empty", textContent: tab === "recs" ? "Nothing recommended yet. Use the thumbs-up on a card." : "Nothing here." }));
+  if (!shown.length) $("list").replaceChildren(el("div", { className: "empty", textContent: tab === "recs" ? "Nothing recommended yet. Use the thumbs-up on a card." : tab === "upcoming" ? "No unreleased shows on your list. Shows that haven't premiered yet land here." : "Nothing here." }));
   else $("list").replaceChildren(...shown.map(row));
   prefetchSeasons([...shown, ...open]);
   prefetchInfo();
@@ -1052,9 +1067,54 @@ function mergeDuplicates(groups) {
   render(); save();
   flash("Combined");
 }
+// A match worth a second look: a side entry (special, OVA, short) for a plain name, a weak title fit, or nothing found.
+const FMT_LABEL = { TV: "TV", TV_SHORT: "TV short", MOVIE: "Movie", SPECIAL: "Special", OVA: "OVA", ONA: "ONA", MUSIC: "Music video" };
+const MINOR_FMT = new Set(["SPECIAL", "OVA", "MUSIC", "TV_SHORT"]);
+const MINOR_RE = /\b(ova|oad|specials?|recap|shorts?|chibi|pilot|mini|music|pv|omake)\b/i;
+function matchDoubt(it) {
+  const m = matchOf[it.name];
+  if (!m || m.manual || m.ok) return "";
+  if (m.none) return "Not found";
+  if (MINOR_FMT.has(m.fmt) && !MINOR_RE.test(it.name)) return `Matched to ${{ SPECIAL: "a special", OVA: "an OVA", MUSIC: "a music video", TV_SHORT: "a short" }[m.fmt]}`;
+  if (typeof m.conf === "number" && m.conf < 0.72) return "Title is only a loose fit";
+  return "";
+}
+function showMatches() {
+  const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey, true); render(); };
+  const onKey = ev => { if (ev.key === "Escape") { ev.stopImmediatePropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  overlay.onmousedown = ev => { if (ev.target === overlay) close(); };
+  panel.style.width = "min(720px, 92vw)";
+  const list = el("div", { className: "mlist" });
+  const draw = () => {
+    const rows = items.filter(matchDoubt);
+    list.replaceChildren(...(rows.length ? rows.map(it => {
+      const m = matchOf[it.name];
+      const img = el("img", { loading: "lazy", alt: "", src: coverSrc(it) });
+      img.onerror = () => img.replaceWith(el("div", { className: "ph", textContent: it.name[0].toUpperCase() }));
+      const what = m.none ? "Couldn't find this on AniList" : `Matched to “${m.match}”${[FMT_LABEL[m.fmt], m.year].filter(Boolean).map(x => ` · ${x}`).join("")}`;
+      const kids = [img, elc("div", { className: "mi" }, el("b", { textContent: it.name }), el("small", { textContent: what }), el("span", { className: "why", textContent: matchDoubt(it) }))];
+      if (!m.none) kids.push(ib("check", "Looks right", { title: "Keep this match", onclick: async () => {
+        await fetch("/api/match/ok", { method: "POST", body: JSON.stringify({ name: it.name }) });
+        m.ok = true; draw();
+      } }));
+      kids.push(ib("search", "Fix", { title: "Search for the right show", onclick: async () => { await changeCover(it); draw(); } }));
+      return elc("div", { className: "mrow" }, ...kids);
+    }) : [el("p", { textContent: "Nothing left to check. Every show is matched." })]));
+  };
+  panel.append(el("h2", { textContent: "Check matches" }),
+    el("p", { textContent: "These shows may be matched to the wrong AniList entry. Your list's names are never changed: fixing a match only changes the cover, seasons and details." }),
+    list, el("button", { textContent: "Close", onclick: close }));
+  overlay.append(panel); document.body.append(overlay);
+  draw();
+}
 function renderActions() {
   const box = $("tabActions");
   renderActions.base();
+  const doubts = resolving?.running ? 0 : items.filter(matchDoubt).length;   // wait until the list is done before asking
+  if (doubts) box.append(el("span", { className: "hint", textContent: `${doubts} show${doubts > 1 ? "s" : ""} may be matched to the wrong entry.` }),
+    ib("search", "Check matches", { onclick: showMatches }));
   const dups = duplicateGroups();
   if (dups.length) box.append(el("span", { className: "hint", textContent: "Some shows are listed more than once (they are seasons of the same show)." }),
     ib("merge", "Combine", { onclick: () => mergeDuplicates(dups) }));
@@ -1449,9 +1509,17 @@ function airing(it) {
   const i = list ? list.findIndex(x => x.next) : -1;
   return i < 0 ? null : { s: i + 1, ep: list[i].next.episode, at: list[i].next.at };
 }
-const isAiring = it => !!airing(it);   // any show with an episode still to air, whatever its status
-const tabCount = k => k === "airing" ? items.filter(isAiring).length : k === "recs" ? items.filter(i => i.rec).length
-  : items.filter(i => k === "all" || i.status === k).length;
+// Not started and AniList says it hasn't premiered: it gets its own tab, and leaves Not started and Airing until it does.
+const isUpcoming = it => it.status === "not started" && infoOf[it.name]?.status === "NOT_YET_RELEASED";
+const isAiring = it => !isUpcoming(it) && !!airing(it);   // any show with an episode still to air, whatever its status
+const inTab = (it, k) => k === "all" ? true : k === "upcoming" ? isUpcoming(it) : k === "recs" ? it.rec : k === "airing" ? isAiring(it)
+  : it.status === k && !(k === "not started" && isUpcoming(it));
+const tabCount = k => items.filter(i => inTab(i, k)).length;
+function premiereText(it) {
+  const d = infoOf[it.name]?.start;
+  if (!d?.year) return "Premiere date not announced";
+  return `Premieres ${d.month ? `${MONTHS[d.month - 1]} ` : ""}${d.day ? `${d.day}, ` : ""}${d.year}`;
+}
 function untilText(at) {
   const m = Math.floor((at * 1000 - Date.now()) / 60000), h = Math.floor(m / 60);
   return m <= 0 ? "now" : h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h ? `${h}h ${m % 60}m` : `${m}m`;
@@ -1518,7 +1586,7 @@ function renderFilters() {
 // Year, rating and tags for every title, one at a time (the server caches them).
 let infoBusy = false;
 async function prefetchInfo() {
-  if (infoBusy) return;
+  if (infoBusy || resolving?.running) return;
   const it = items.find(i => !(i.name in infoOf));
   if (!it) return;
   infoBusy = true;
@@ -1528,13 +1596,38 @@ async function prefetchInfo() {
   } catch { infoOf[it.name] = false; }
   infoBusy = false;
   // Don't rebuild the page under an open dropdown.
-  if (document.activeElement?.tagName === "SELECT") setTimeout(prefetchInfo, 1500); else render();
+  if (document.activeElement?.tagName === "SELECT") setTimeout(prefetchInfo, 1500); else scheduleRender();
 }
 
 // Fetch season/episode data for visible shows one at a time (the server caches it).
 let fetching = false, idsStale = false;
+// What the server already knows about every show (matches, seasons, details), in one call. While it is still
+// working through the list (a big import), the page checks back every few seconds and shows the progress.
+let matchOf = {}, resolving = null, knownTimer = 0, renderTimer = 0;
+async function loadKnown() {
+  clearTimeout(knownTimer);
+  let d;
+  try { d = await (await fetch("/api/known")).json(); } catch { return; }
+  const was = resolving?.running;
+  Object.assign(seasonsOf, d.seasons); Object.assign(infoOf, d.info);
+  matchOf = d.match; resolving = d.resolve;
+  const pill = $("resolvePill"), r = resolving;
+  pill.hidden = !(r.running && r.total);
+  if (!pill.hidden) pill.textContent = `${r.phase}… ${r.done} / ${r.total}`;
+  if (r.running) knownTimer = setTimeout(loadKnown, 3000);
+  else if (was) loadIds();
+  scheduleRender();
+}
+// Rebuild soon, once, and not while someone is typing in a card.
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    if (document.activeElement?.closest?.("#list") && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return scheduleRender();
+    render();
+  }, 120);
+}
 async function prefetchSeasons(shown) {
-  if (fetching) return;
+  if (fetching || resolving?.running) return;   // the server is already doing the whole list
   const it = shown.find(i => !(i.name in seasonsOf));
   if (!it) { if (idsStale) { idsStale = false; loadIds(); } return; }   // all season chains are in: later seasons now count as "on your list"
   idsStale = true;
@@ -1544,7 +1637,7 @@ async function prefetchSeasons(shown) {
     seasonsOf[it.name] = r.ok ? (await r.json()).seasons || false : false;
   } catch { seasonsOf[it.name] = false; }
   fetching = false;
-  render();
+  scheduleRender();
 }
 
 function btn(text, tip, fn, cls = "") {
@@ -1603,19 +1696,21 @@ async function changeCover(it) {
   const d = await r.json();
   if (!r.ok) flash("No match: " + d.error, true); else flash("Cover: " + d.match);
   delete seasonsOf[it.name]; delete infoOf[it.name];   // the matched series may have changed
-  render(); save(); loadIds();
+  render(); save(); loadIds(); await loadKnown();
 }
 
 async function renameItem(it) {
   const v = prompt("Rename", it.name);
   const name = (v || "").trim();
   if (!name || name === it.name) return;
-  if (items.some(i => i !== it && i.name.toLowerCase() === name.toLowerCase())) return flash("Already on the list", true);
+  if (items.some(i => i !== it && i.name.toLowerCase() === name.toLowerCase()))
+    return flash(`“${name}” is already on your list. Names must differ: add the year, like “${name} (2019)”`, true);
   const old = it.name;
   try {
     await fetch("/api/rename", { method: "POST", body: JSON.stringify({ from: old, to: name }) });
   } catch { return flash("Can't reach server.py", true); }
-  for (const db of [seasonsOf, infoOf, coverBust]) if (old in db) { db[name] = db[old]; delete db[old]; }
+  for (const db of [seasonsOf, infoOf, matchOf]) delete db[old];   // the new name is looked up again (a match you picked moves with it)
+  coverBust[name] = Date.now();
   edit(it, i => i.name = name);
 }
 
@@ -1657,6 +1752,10 @@ function turn(li, it) {
 function backFace(it, li) {
   const head = el("div", { className: "backhead" });
   head.append(el("span", { className: "name", textContent: shownName(it) }), flipBtn("Done", () => turn(li, it)));
+  const mm = matchOf[it.name], matched = el("div", { className: "matched" });
+  if (mm?.none) matched.textContent = "Not found on AniList yet";
+  else if (mm?.id) matched.append("Matched to ", el("a", { href: `https://anilist.co/anime/${mm.id}`, target: "_blank", rel: "noopener", textContent: mm.match }),
+    [FMT_LABEL[mm.fmt], mm.year].filter(Boolean).map(x => ` · ${x}`).join(""));
   const notes = el("textarea", { className: "notes", value: it.notes, placeholder: "Notes…" });
   notes.setAttribute("aria-label", "Notes");
   let t;
@@ -1675,12 +1774,12 @@ function backFace(it, li) {
     v => edit(it, i => i.rating = v)), withBox);
   const body = el("div", { className: "body" });
   const row = el("div", { className: "backbtns" });
-  const cc = btn("", "Change cover (all seasons)", () => changeCover(it), "wide has-i");
-  cc.append(ico("image"), document.createTextNode("Change cover"));
+  const cc = btn("", "Wrong show? Search for the right one. The cover, seasons and details follow it", () => changeCover(it), "wide has-i");
+  cc.append(ico("search"), document.createTextNode("Fix match"));
   remove.classList.add("has-i"); remove.replaceChildren(ico("trash"), document.createTextNode("Remove"));
   row.append(cc, remove);
   const syn = infoOf[it.name]?.desc;
-  body.append(head, ...(syn ? [el("div", { className: "synopsis", textContent: syn })] : []), meta, notes, row);
+  body.append(head, matched, ...(syn ? [el("div", { className: "synopsis", textContent: syn })] : []), meta, notes, row);
   return [body];
 }
 
@@ -1708,7 +1807,8 @@ function frontFace(it, li) {
     body.append(el("div", { className: "meta", textContent: bits.join(" · "), title: "From MyAnimeList: score, overall rank, popularity rank" }));
   }
   const air = airing(it);
-  if (air) body.append(el("div", { className: "meta air", textContent: `S${air.s} E${air.ep} airs in ${untilText(air.at)}` }));
+  if (isUpcoming(it)) body.append(el("div", { className: "meta air", textContent: premiereText(it) }));
+  else if (air) body.append(el("div", { className: "meta air", textContent: `S${air.s} E${air.ep} airs in ${untilText(air.at)}` }));
   if (it.with) body.append(el("div", { className: "meta", textContent: `With ${it.with}` }));
   if (it.notes) body.append(el("div", { className: "meta" + (UNC_RE.test(it.notes) ? " unc" : ""), textContent: it.notes }));
 
@@ -1901,6 +2001,7 @@ function xferItems() {
   return [
     ["Bring in a list", [["mal", "upload", "MyAnimeList", "Adds the shows from your MAL export (.xml). Your current list is kept"],
       ["ap", "upload", "Anime-Planet", "Adds the shows from your Anime-Planet export (.json). Your current list is kept"]]],
+    ["Matching", [["matches", "search", "Check matches", (n => n ? `${n} show${n > 1 ? "s" : ""} to look at` : "See how your shows were matched to AniList")(items.filter(matchDoubt).length)]]],
     ["Back up", [["backup", "download", "Back up my list", "Downloads everything as one file"],
       ["restore", "history", "Restore from a backup", "Replaces your list with a backup file"]]],
     ["Friends' files", [["export", "share", "Save my recommendations as a file", "For friends who can't use a share code"],
@@ -1928,6 +2029,7 @@ function gearAction(act) {
   else if (act === "layout") { wideCards = !wideCards; localStorage.setItem("layout", wideCards ? "wide" : "compact"); document.body.classList.toggle("wide-cards", wideCards); render(); }
   else if (act === "mal") $("malFile").click();
   else if (act === "ap") $("apFile").click();
+  else if (act === "matches") showMatches();
   else if (act === "backup") location.href = "/api/backup";
   else if (act === "restore") $("restoreFile").click();
 }
@@ -2449,7 +2551,7 @@ fetch("/api/settings").then(r => r.json()).then(d => { siteSearch = d.search || 
     const stale = items.filter(i => i.status === "started" && parse(i.progress) && !parse(i.progress).e);
     stale.forEach(i => i.status = "not started");
     if (stale.length) save();
-    render(); return Promise.all([loadFriends(), loadIds()]); }).then(render)
+    render(); return Promise.all([loadKnown(), loadFriends(), loadIds()]); }).then(render)
   .catch(() => flash("Can't reach server.py", true));
 </script>
 </body>

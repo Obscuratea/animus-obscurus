@@ -1,5 +1,19 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.4.2
+**New**
+- **Upcoming tab.** Shows on your list that haven't premiered yet get their own tab (next to Not started), with the premiere date on the card.
+- **Check matches.** Animus now tells you when a show may be linked to the wrong AniList entry (a special, an OVA, a short, or only a loose title fit) and lists them in one place, with **Looks right** or **Fix** for each. It's also under Import & export → Matching. Your list's names are never changed: fixing a match only changes the cover, seasons and details.
+- The back of each card shows what the show is **Matched to** on AniList, and the cover button is now **Fix match**.
+- Big lists (like a 1,000-show import) are linked in the background, many shows at a time, with a small progress note in the bottom-left corner.
+
+**Fixes**
+- Much better matching: the main series now wins over its specials, OVAs and shorts unless the name asks for one, season numbers ("2nd Season", "II") and years ("Dororo (2019)") are understood, and long titles find their show.
+- Shows that weren't found are tried again the next day instead of staying blank forever, and renaming a show looks it up again.
+- Covers no longer go missing on large imports (AniList now allows fewer requests per minute, and Animus waits its turn).
+- The "already on your list" message when renaming stays up long enough to read, and suggests adding the year.
+- No more error messages in the console window when a page is closed mid-load.
+
 ## 1.4.1
 **New**
 - **Import from Anime-Planet.** The new round **Import & export** button (under the gear) takes your Anime-Planet export file (.json) and adds the shows that aren't on your list yet, with their status, episodes watched and score. "Won't watch" shows are left out.

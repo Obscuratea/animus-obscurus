@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Local anime list: serves index.html and keeps the Excel sheet in sync. Stdlib only."""
-import hashlib, io, json, mimetypes, os, re, secrets, shutil, sys, tempfile, threading, time, urllib.error, urllib.request, webbrowser, zipfile
+import difflib, hashlib, io, json, mimetypes, os, re, secrets, shutil, sys, tempfile, threading, time, unicodedata, urllib.error, urllib.request, webbrowser, zipfile
 from urllib.parse import parse_qs, unquote, urlparse
 import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.4.1"
+VERSION = "1.4.2"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -153,12 +153,13 @@ COVERS = os.path.join(ROOT, "data", "covers")
 COVER_DB = os.path.join(COVERS, "covers.json")
 cover_lock = threading.Lock()
 seasons_lock = threading.Lock()
-QUERY = """query($s:String){Media(search:$s,type:ANIME){id title{romaji english} coverImage{large}}}"""
-ID_QUERY = """query($id:Int){Media(id:$id,type:ANIME){id title{romaji english} coverImage{large}}}"""
+QUERY = """query($s:String){Media(search:$s,type:ANIME){id format seasonYear startDate{year} title{romaji english} coverImage{large}}}"""
+ID_QUERY = """query($id:Int){Media(id:$id,type:ANIME){id format seasonYear startDate{year} title{romaji english} coverImage{large}}}"""
 SEARCH_QUERY = """query($s:String){Page(perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){
   id format seasonYear title{romaji english} coverImage{medium}}}}"""
-SEASON_QUERY = """query($id:Int){Media(id:$id){id format status episodes title{romaji english}
-  coverImage{large} nextAiringEpisode{episode airingAt} relations{edges{relationType node{id format}}}}}"""
+SEASON_FIELDS = ("id format status episodes title{romaji english} coverImage{large} nextAiringEpisode{episode airingAt} "
+                 "relations{edges{relationType node{id format}}}")
+SEASON_QUERY = "query($id:Int){Media(id:$id){" + SEASON_FIELDS + "}}"
 SEASONS_DB = os.path.join(ROOT, "data", "seasons.json")
 SEASONS_V = 2             # bump when the shape or meaning of cached seasons changes
 AIRING_TTL = 3 * 3600     # airing shows gain episodes weekly
@@ -168,86 +169,210 @@ rate_lock = threading.Lock()
 next_slot = [0.0]
 
 
+ANILIST_GAP = 2.1   # AniList allows 30 calls a minute (X-RateLimit-Limit); one every 2 s stays under it
+
+
 def gql(query, variables, key="Media"):
     """One AniList call, spaced out to stay under their rate limit (retrying on 429)."""
     body = json.dumps({"query": query, "variables": variables}).encode()
     req = urllib.request.Request("https://graphql.anilist.co", body,
                                  {"Content-Type": "application/json", "User-Agent": "anime-list"})
-    for attempt in range(3):
+    for attempt in range(6):
         with rate_lock:
             now = time.time()
             wait = next_slot[0] - now
-            next_slot[0] = max(now, next_slot[0]) + 0.7
+            next_slot[0] = max(now, next_slot[0]) + ANILIST_GAP
         if wait > 0:
             time.sleep(wait)
         try:
-            return json.load(urllib.request.urlopen(req, timeout=15))["data"][key]
+            data = json.load(urllib.request.urlopen(req, timeout=20))["data"]
+            return data if key is None else data[key]
         except urllib.error.HTTPError as e:
-            if e.code != 429 or attempt == 2:
+            if e.code == 404 and key is None:   # a batch where some ids are gone: keep the rest
+                try:
+                    return json.load(e).get("data") or {}
+                except ValueError:
+                    raise e
+            if e.code != 429 or attempt == 5:
                 raise
             time.sleep(float(e.headers.get("Retry-After") or 5))
+
+
+def save_covers(db):
+    os.makedirs(COVERS, exist_ok=True)   # a fresh install has no covers folder yet
+    with open(COVER_DB, "w") as f:
+        json.dump(db, f, indent=1)
 
 
 def load_covers():
     try:
         with open(COVER_DB) as f:
-            return json.load(f)
+            db = json.load(f)
     except FileNotFoundError:
         return {}
+    for ent in db.values():   # copies before 1.4.2 saved only the file, which is named after the AniList id
+        stem = (ent.get("file") or "").split(".")[0]
+        if "id" not in ent and stem.isdigit():
+            ent["id"] = int(stem)
+    return db
+
+
+SEASON_WORDS = re.compile(r"\s*[:\-–]?\s*\b(season\s*\d+|\d+(?:st|nd|rd|th)\s+season|(?:second|third|fourth|fifth|final)\s+season|part\s*\d+|cour\s*\d+)\b.*$", re.I)
 
 
 def search_terms(name):
     """The title as written, then looser versions (sheet names carry extras like ': Netflix')."""
     loose = re.sub(r"\s*[:\-–]\s*(netflix|season\s*\d+|s\d+).*$", "", name, flags=re.I)
-    return list(dict.fromkeys([name, loose, name.split(":")[0].strip()]))
+    bare = SEASON_WORDS.sub("", name).strip()   # "Haikyu!! Second Season" -> "Haikyu!!" (the season is picked by number after)
+    return list(dict.fromkeys(t for t in [name, loose, bare, name.split(":")[0].strip()] if t))
 
 
-def fetch_cover(name, search=None, media_id=None):
-    """Look the title up on AniList and cache the image. Returns the cache entry."""
-    os.makedirs(COVERS, exist_ok=True)
-    if media_id:
-        return lookup(None, search, media_id)
-    for term in ([search] if search else search_terms(name)):
-        try:
-            return lookup(term, search)
-        except urllib.error.HTTPError as e:
-            if e.code != 404:
-                raise
-    return {"file": None, "match": "", "search": search or ""}
+# ---- Matching a list name to the right AniList entry. The name on the list is never changed; only the match behind it.
+CAND_FIELDS = "id format seasonYear startDate{year} title{romaji english native} synonyms coverImage{large}"
+CAND_QUERY = "query($s:String){Page(perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){" + CAND_FIELDS + "}}}"
+MATCH_V = 2   # bump when matching improves, so automatic matches are re-checked once
+MINOR_FORMATS = ("SPECIAL", "OVA", "MUSIC", "TV_SHORT")
+MINOR_WORDS = re.compile(r"\b(ova|oad|specials?|recap|shorts?|chibi|pilot|mini|music|pv|omake|picture drama)\b", re.I)
+MOVIE_WORDS = re.compile(r"\b(movie|film|gekijouban)\b", re.I)
+YEAR_RE = re.compile(r"\s*[(\[]((?:19|20)\d\d)[)\]]")
+FORMAT_PRIOR = {"TV": .1, "MOVIE": .06, "ONA": .06, "TV_SHORT": -.05, "OVA": -.1, "SPECIAL": -.15, "MUSIC": -.2}
+ROMAN = {"ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6", "second": "2", "third": "3", "fourth": "4", "fifth": "5"}
+NEG_RETRY = 24 * 3600     # a title AniList didn't know is asked about again after a day
 
 
-def lookup(term, search, media_id=None):
-    media = gql(ID_QUERY, {"id": media_id}) if media_id else gql(QUERY, {"s": term})
-    url = media["coverImage"]["large"]
-    fname = f'{media["id"]}.jpg'
-    img = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
-    data = urllib.request.urlopen(img, timeout=15).read()
-    with open(os.path.join(COVERS, fname), "wb") as f:
-        f.write(data)
+def split_year(name):
+    """'Dororo (2019)' -> ('Dororo', 2019): sites add the year to tell remakes apart; AniList can't search for it."""
+    m = YEAR_RE.search(name)
+    return (YEAR_RE.sub("", name).strip() or name, int(m.group(1))) if m else (name, None)
+
+
+def norm_title(t):
+    t = unicodedata.normalize("NFKC", t or "").lower()
+    return " ".join(re.sub(r"[^\w]+", " ", t).split())
+
+
+def season_numbers(t):
+    """Season or part numbers in a title: '2', '2nd' and 'II' all count as 2 (1 says nothing)."""
+    out = set()
+    for w in norm_title(t).split():
+        m = re.fullmatch(r"(\d{1,2})(?:st|nd|rd|th)?", w)
+        if m:
+            out.add(str(int(m.group(1))))
+        elif w in ROMAN:
+            out.add(ROMAN[w])
+    return out - {"1"}
+
+
+def title_likeness(a, b):
+    """0..1. A name that is the start of the full title ('86' for '86 EIGHTY-SIX') counts as a good fit."""
+    if not a or not b:
+        return 0
+    r = difflib.SequenceMatcher(None, a, b).ratio()
+    if b.startswith(a + " "):
+        r = max(r, .8 + .2 * len(a) / len(b))
+    return r
+
+
+def score_candidate(base, year, kind, cand, rank):
+    """How well one AniList result fits a name: title likeness, then format, season number, year and AniList's own order."""
+    n = norm_title(base)
+    titles = [t for t in [cand["title"].get(k) for k in ("english", "romaji", "native")] + (cand.get("synonyms") or []) if t]
+    sim, best = max(((title_likeness(n, norm_title(t)), t) for t in titles), default=(0, ""))
+    s = sim - .03 * rank
+    fmt = cand.get("format")
+    if kind:
+        s += .15 if fmt == kind else -.1
+    elif MOVIE_WORDS.search(base):
+        s += .12 if fmt == "MOVIE" else 0
+    elif MINOR_WORDS.search(base):
+        s += .05 if fmt in MINOR_FORMATS else 0
+    else:
+        s += FORMAT_PRIOR.get(fmt, 0)   # a plain name means the show itself, not its specials or shorts
+    nn, tn = season_numbers(base), season_numbers(best)
+    if nn or tn:
+        s += .06 if nn == tn else -.12 if nn - tn else -.06
+    cy = cand.get("seasonYear") or (cand.get("startDate") or {}).get("year")
+    if year and cy:
+        s += .25 if cy == year else -.2
+    return s, sim
+
+
+def pick_candidate(name, kind, cands):
+    base, year = split_year(name)
+    scored = [(score_candidate(base, year, kind, c, r), c) for r, c in enumerate(cands)]
+    (_, sim), c = max(scored, key=lambda x: x[0][0])
+    return c, sim
+
+
+def cover_entry(media, sim, search="", manual=False):
     t = media["title"]
-    return {"file": fname, "id": media["id"], "match": t.get("english") or t.get("romaji"), "search": search or ""}
+    return {"file": f'{media["id"]}.jpg', "id": media["id"], "url": media["coverImage"]["large"],
+            "match": t.get("english") or t.get("romaji"), "fmt": media.get("format"),
+            "year": media.get("seasonYear") or (media.get("startDate") or {}).get("year"),
+            "conf": round(sim, 2), "search": search, "manual": manual, "v": MATCH_V}
+
+
+def no_match(search=""):
+    return {"file": None, "match": "", "search": search, "at": time.time(), "v": MATCH_V}
+
+
+def ensure_image(ent):
+    """Covers are downloaded the first time they're shown (a big import matches hundreds of shows at once)."""
+    path = os.path.join(COVERS, ent["file"])
+    if not os.path.exists(path):
+        url = ent.get("url") or gql(ID_QUERY, {"id": ent["id"]})["coverImage"]["large"]
+        img = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+        data = urllib.request.urlopen(img, timeout=15).read()
+        os.makedirs(COVERS, exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(data)
+    return path
+
+
+def fetch_cover(name, search=None, media_id=None, kind=None):
+    """Find the AniList entry for a name. A typed search or a picked id is the user's choice and is kept as given."""
+    if media_id:
+        return cover_entry(gql(ID_QUERY, {"id": media_id}), 1.0, search or "", True)
+    if search:
+        try:
+            return cover_entry(gql(QUERY, {"s": search}), 1.0, search, True)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return no_match(search)
+            raise
+    for term in search_terms(split_year(name)[0]):
+        cands = gql(CAND_QUERY, {"s": term}, "Page")["media"]
+        if cands:
+            return cover_entry(*pick_candidate(name, kind, cands))
+    return no_match()
+
+
+def cover_retry(ent):
+    """A title AniList didn't know (or that failed before this check existed) is looked up again after a while."""
+    return ent is not None and not ent.get("file") and not ent.get("manual") and time.time() - ent.get("at", 0) > NEG_RETRY
 
 
 def cover_for(name):
     with cover_lock:
         db = load_covers()
         ent = db.get(name)
-        if ent is None:
+        if ent is None or cover_retry(ent):
             try:
                 ent = fetch_cover(name)
             except Exception as e:
                 print("cover lookup failed:", name, e)
                 return None  # not cached: transient failures retry next load
             db[name] = ent
-            with open(COVER_DB, "w") as f:
-                json.dump(db, f, indent=1)
+            save_covers(db)
         return ent
 
 
-INFO_QUERY = """query($id:Int){Media(id:$id){id idMal format isAdult seasonYear startDate{year} genres synonyms averageScore description(asHtml:false)
-  title{romaji english native} tags{name rank isGeneralSpoiler isMediaSpoiler}}}"""
+INFO_FIELDS = ("id idMal format status isAdult seasonYear startDate{year month day} genres synonyms averageScore description(asHtml:false) "
+               "title{romaji english native} tags{name rank isGeneralSpoiler isMediaSpoiler}")
+INFO_QUERY = "query($id:Int){Media(id:$id){" + INFO_FIELDS + "}}"
 INFO_DB = os.path.join(ROOT, "data", "info.json")
 INFO_TTL = 30 * 24 * 3600
+UNRELEASED_TTL = 12 * 3600   # a show that hasn't started airing changes status the day it premieres
 info_lock = threading.Lock()
 jikan_lock = threading.Lock()
 # MyAnimeList's age ratings (via Jikan), shortened for the cards. Order matters: first prefix wins.
@@ -371,12 +496,28 @@ def want_rating(media_id):
 
 def build_info(media_id):
     """Everything AniList knows; the age rating comes later from MAL, in the background."""
-    m = gql(INFO_QUERY, {"id": media_id})
+    return info_from(gql(INFO_QUERY, {"id": media_id}))
+
+
+def info_stale(ent):
+    return (not ent or "format" not in ent or "desc" not in ent or "al_score" not in ent or "titles" not in ent or "status" not in ent
+            or time.time() - ent["at"] > (UNRELEASED_TTL if ent.get("status") == "NOT_YET_RELEASED" else INFO_TTL))
+
+
+def keep_mal(fresh, old):
+    """A refreshed entry keeps the MAL facts already fetched for it."""
+    if old.get("rated") and fresh.get("mal") == old.get("mal"):
+        fresh.update({k: old[k] for k in ("rating", "ratingText", "rated", "mal_score", "mal_rank", "mal_pop") if k in old})
+    return fresh
+
+
+def info_from(m):
     names = list(m["title"].values()) + (m["synonyms"] or [])
     tags = sorted((t for t in m["tags"] if t["rank"] >= 60 and not t["isGeneralSpoiler"] and not t["isMediaSpoiler"]),
                   key=lambda t: -t["rank"])
     code, text = rating_code(None, m["isAdult"])
-    return {"format": m["format"], "year": m["seasonYear"] or (m["startDate"] or {}).get("year"),
+    return {"format": m["format"], "status": m["status"], "start": m["startDate"],
+            "year": m["seasonYear"] or (m["startDate"] or {}).get("year"),
             "rating": code, "ratingText": text, "mal": m.get("idMal"), "adult": m["isAdult"],
             "rated": not m.get("idMal"),   # nothing to ask MAL about without an id
             "desc": tidy_description(m.get("description")),
@@ -402,7 +543,7 @@ def info_for(name):
             ent["rated"] = True
         else:
             ent = None
-    if not ent or "format" not in ent or "desc" not in ent or "al_score" not in ent or "titles" not in ent or time.time() - ent["at"] > INFO_TTL:
+    if info_stale(ent):
         try:
             fresh = {"at": time.time(), **build_info(media_id)}
         except Exception:
@@ -412,10 +553,7 @@ def info_for(name):
         if fresh:
             with info_lock:
                 db = load_info()
-                old = db.get(str(media_id)) or {}
-                if old.get("rated") and fresh.get("mal") == old.get("mal"):
-                    fresh.update({k: old[k] for k in ("rating", "ratingText", "rated", "mal_score", "mal_rank", "mal_pop") if k in old})
-                db[str(media_id)] = ent = fresh
+                db[str(media_id)] = ent = keep_mal(fresh, db.get(str(media_id)) or {})
                 save_info(db)
     want_rating(media_id)
     return ent
@@ -432,9 +570,9 @@ def episode_count(node):
     return node["episodes"] or None
 
 
-def build_seasons(media_id):
-    """Walk AniList's prequel/sequel links to list a series' TV seasons in order."""
-    nodes = {}
+def build_seasons(media_id, nodes=None):
+    """Walk AniList's prequel/sequel links to list a series' TV seasons in order. `nodes` may hold entries already fetched."""
+    nodes = {} if nodes is None else nodes
 
     def node(i):
         if i not in nodes:
@@ -479,6 +617,16 @@ def build_seasons(media_id):
     return out
 
 
+def seasons_fresh(ent):
+    if not ent or ent.get("v") != SEASONS_V:
+        return False  # older saves counted planned episodes as released
+    if not all("cover" in x for x in ent["seasons"]) or any(x.get("airing") and "next" not in x for x in ent["seasons"]):
+        return False  # cached before covers / air dates were stored
+    airing = any(x.get("airing", True) for x in ent["seasons"])
+    next_aired = any(x.get("next") and x["next"]["at"] < time.time() for x in ent["seasons"])
+    return not next_aired and time.time() - ent["at"] < (AIRING_TTL if airing else SEASONS_TTL)
+
+
 def seasons_for(name):
     with seasons_lock:
         try:
@@ -487,15 +635,7 @@ def seasons_for(name):
         except FileNotFoundError:
             db = {}
         ent = db.get(name)
-        if ent and ent.get("v") != SEASONS_V:
-            ent = None  # counted planned episodes as released
-        if ent and not all("cover" in x for x in ent["seasons"]):
-            ent = None  # cached before covers were stored
-        if ent and any(x.get("airing") and "next" not in x for x in ent["seasons"]):
-            ent = None  # airing shows cached before air dates were stored
-        airing = ent and any(x.get("airing", True) for x in ent["seasons"])
-        next_aired = ent and any(x.get("next") and x["next"]["at"] < time.time() for x in ent["seasons"])
-        if ent and not next_aired and time.time() - ent["at"] < (AIRING_TTL if airing else SEASONS_TTL):
+        if seasons_fresh(ent):
             return ent["seasons"]
         cover = cover_for(name)
         if not cover or not cover["file"]:
@@ -1055,6 +1195,206 @@ def relay_loop():
             relay_state["err"] = str(e)
 
 
+# ---- The resolver: matches, season chains and details for the whole list in the background, many shows per AniList call.
+resolve_state = {"running": False, "phase": "", "done": 0, "total": 0, "error": "", "wake": threading.Event()}
+
+
+def gql_batch(field, keys, size):
+    """Many lookups in one AniList call (aliases a0, a1, ...). Halves the batch if AniList finds it too big."""
+    out, i = {}, 0
+    while i < len(keys):
+        chunk = keys[i:i + size]
+        try:
+            data = gql("query{" + " ".join(f"a{j}:{field(k)}" for j, k in enumerate(chunk)) + "}", {}, None)
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 413) and size > 1:
+                size = max(1, size // 2)
+                continue
+            raise
+        for j, k in enumerate(chunk):
+            out[k] = data.get(f"a{j}")
+        i += len(chunk)
+    return out
+
+
+def needs_match(ent):
+    if ent is None:
+        return True
+    if ent.get("manual") or ent.get("ok"):
+        return False
+    return cover_retry(ent) if not ent.get("file") else ent.get("v") != MATCH_V
+
+
+def replaces_old(name, old, new, cands):
+    """An older automatic match is only swapped when it was clearly a side entry (special, OVA, short) and the name doesn't ask for one."""
+    if MINOR_WORDS.search(name) or MOVIE_WORDS.search(name):
+        return False
+    was = next((c for c in cands if c["id"] == old.get("id")), None)
+    return bool(was) and was.get("format") in MINOR_FORMATS and new.get("format") in ("TV", "MOVIE", "ONA")
+
+
+def resolve_matches(names, kinds, covers):
+    resolve_state.update(phase="Finding your shows", total=len(names), done=0)
+    search = lambda term: f"Page(perPage:8){{media(search:{json.dumps(term)},type:ANIME,sort:SEARCH_MATCH){{{CAND_FIELDS}}}}}"
+    pending = [[n, search_terms(split_year(n)[0]), 0] for n in names]
+    while pending:
+        batch, pending = pending[:20], pending[20:]
+        res = gql_batch(search, list(dict.fromkeys(p[1][p[2]] for p in batch)), 20)
+        updates = {}
+        for p in batch:
+            name, terms, i = p
+            cands = (res.get(terms[i]) or {}).get("media") or []
+            if not cands and i + 1 < len(terms):
+                p[2] += 1
+                pending.append(p)   # try the looser spelling later
+                continue
+            old = covers.get(name)
+            if not cands:
+                updates[name] = old if old and old.get("file") else no_match()
+            else:
+                c, sim = pick_candidate(name, kinds.get(name), cands)
+                new = cover_entry(c, sim)
+                if old and old.get("file") and old.get("id") != c["id"] and not replaces_old(name, old, c, cands):
+                    was = next((x for x in cands if x["id"] == old.get("id")), None)
+                    new = dict(old, v=MATCH_V)   # keep what was there; just note what it is
+                    if was:
+                        new.update(fmt=was.get("format"), year=was.get("seasonYear") or (was.get("startDate") or {}).get("year"),
+                                   conf=round(score_candidate(*split_year(name), kinds.get(name), was, 0)[1], 2))
+                updates[name] = new
+            resolve_state["done"] += 1
+        moved = []
+        with cover_lock:
+            db = load_covers()
+            for name, ent in updates.items():
+                cur = db.get(name)
+                if cur is not None and (cur.get("manual") or cur.get("ok")):
+                    continue   # picked by hand while we were busy
+                if cur and cur.get("id") != ent.get("id"):
+                    moved.append(name)
+                db[name] = covers[name] = ent
+            save_covers(db)
+        for name in moved:
+            forget_seasons(name)
+
+
+def resolve_seasons(names, covers):
+    resolve_state.update(phase="Linking seasons", total=len(names), done=0)
+    nodes, frontier = {}, {covers[n]["id"] for n in names}
+    for _ in range(20):   # one batched call per step along the prequel/sequel links
+        missing = [i for i in frontier if i not in nodes]
+        if not missing:
+            break
+        frontier = set()
+        for i, m in gql_batch(lambda i: f"Media(id:{i}){{{SEASON_FIELDS}}}", missing, 25).items():
+            if m:
+                nodes[i] = m
+                frontier.update(e["node"]["id"] for e in m["relations"]["edges"]
+                                if e["relationType"] in ("PREQUEL", "SEQUEL") and e["node"]["format"] in TV)
+    built = {}
+    for n in names:
+        try:
+            built[n] = {"at": time.time(), "v": SEASONS_V, "seasons": build_seasons(covers[n]["id"], nodes)}
+        except Exception as e:
+            print("seasons failed:", n, e)
+        resolve_state["done"] += 1
+        if len(built) >= 50 or n == names[-1]:
+            with seasons_lock:
+                try:
+                    with open(SEASONS_DB) as f:
+                        db = json.load(f)
+                except FileNotFoundError:
+                    db = {}
+                db.update(built)
+                with open(SEASONS_DB, "w") as f:
+                    json.dump(db, f, indent=1)
+            built = {}
+
+
+def resolve_info(ids):
+    resolve_state.update(phase="Getting details", total=len(ids), done=0)
+    for k in range(0, len(ids), 40):
+        chunk = ids[k:k + 40]
+        got = gql_batch(lambda i: f"Media(id:{i}){{{INFO_FIELDS}}}", chunk, 20)
+        with info_lock:
+            db = load_info()
+            for i, m in got.items():
+                if m:
+                    db[str(i)] = keep_mal({"at": time.time(), **info_from(m)}, db.get(str(i)) or {})
+            save_info(db)
+        resolve_state["done"] += len(chunk)
+        for i in chunk:
+            want_rating(i)
+
+
+def resolve_all():
+    items = read_items()
+    kinds = {it["name"]: "MOVIE" if it["progress"].strip().lower() == "movie" else None for it in items}
+    with cover_lock:
+        covers = load_covers()
+    todo = [n for n in kinds if needs_match(covers.get(n))]
+    if todo:
+        resolve_matches(todo, kinds, covers)
+    matched = [n for n in kinds if (covers.get(n) or {}).get("file") and covers[n].get("id")]
+    with seasons_lock:
+        try:
+            with open(SEASONS_DB) as f:
+                sdb = json.load(f)
+        except FileNotFoundError:
+            sdb = {}
+    stale = [n for n in matched if not seasons_fresh(sdb.get(n))]
+    if stale:
+        resolve_seasons(stale, covers)
+    with info_lock:
+        idb = load_info()
+    ids = list(dict.fromkeys(covers[n]["id"] for n in matched if info_stale(idb.get(str(covers[n]["id"])))))
+    if ids:
+        resolve_info(ids)
+
+
+def resolve_loop():
+    resolve_state["wake"].set()
+    while True:
+        resolve_state["wake"].wait(3600)   # after list changes, and hourly for airing shows
+        time.sleep(4)   # let a burst of edits settle
+        resolve_state["wake"].clear()
+        resolve_state.update(running=True, error="")
+        try:
+            resolve_all()
+        except Exception as e:
+            resolve_state["error"] = str(e)
+            print("resolve failed:", e)
+        finally:
+            resolve_state.update(running=False, phase="", done=0, total=0)
+
+
+def known():
+    """Everything already saved about the list's shows, so the page can fill in at once."""
+    with cover_lock:
+        covers = load_covers()
+    with seasons_lock:
+        try:
+            with open(SEASONS_DB) as f:
+                sdb = json.load(f)
+        except FileNotFoundError:
+            sdb = {}
+    with info_lock:
+        idb = load_info()
+    out = {"seasons": {}, "info": {}, "match": {}, "resolve": {k: v for k, v in resolve_state.items() if k != "wake"}}
+    for it in read_items():
+        n, c = it["name"], covers.get(it["name"])
+        if c is None:
+            continue
+        out["match"][n] = {"id": c.get("id"), "match": c.get("match"), "fmt": c.get("fmt"), "year": c.get("year"), "conf": c.get("conf"),
+                           "manual": bool(c.get("manual") or c.get("search")), "ok": bool(c.get("ok")), "none": not c.get("file")}
+        s = sdb.get(n)
+        if s and s.get("v") == SEASONS_V:
+            out["seasons"][n] = s["seasons"]
+        i = idb.get(str(c.get("id"))) if c.get("file") else None
+        if i and "titles" in i:
+            out["info"][n] = i
+    return out
+
+
 def make_backup():
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
@@ -1212,13 +1552,18 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if self.path == "/api/known":
+            return self.send(200, known())
         if self.path.startswith("/api/cover"):
             name = parse_qs(urlparse(self.path).query).get("name", [""])[0]
             ent = cover_for(name) if name else None
             if not ent or not ent["file"]:
                 return self.send(404, {"error": "no cover"})
-            with open(os.path.join(COVERS, ent["file"]), "rb") as f:
-                data = f.read()
+            try:
+                with open(ensure_image(ent), "rb") as f:
+                    data = f.read()
+            except Exception:
+                return self.send(404, {"error": "cover unavailable"})
             return self.send_image(data, "image/jpeg", {"X-Match": ent["match"].encode("ascii", "replace").decode()})
         if self.path.startswith("/api/seasons"):
             name = parse_qs(urlparse(self.path).query).get("name", [""])[0]
@@ -1275,6 +1620,8 @@ class Handler(BaseHTTPRequestHandler):
             # Titles key the caches, so a renamed show keeps its cover pick and season data.
             try:
                 req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+                # A match picked by hand (or approved) moves with the name; an automatic one is redone for the new name.
+                keep = False
                 for lock, path in ((cover_lock, COVER_DB), (seasons_lock, SEASONS_DB)):
                     with lock:
                         try:
@@ -1283,9 +1630,25 @@ class Handler(BaseHTTPRequestHandler):
                         except FileNotFoundError:
                             continue
                         if req["from"] in db:
-                            db[req["to"]] = db.pop(req["from"])
+                            ent = db.pop(req["from"])
+                            if path == COVER_DB:
+                                keep = bool(ent.get("manual") or ent.get("search") or ent.get("ok")) and bool(ent.get("file"))
+                            if keep:
+                                db[req["to"]] = ent
                             with open(path, "w") as f:
                                 json.dump(db, f, indent=1)
+                resolve_state["wake"].set()
+            except Exception as e:
+                return self.send(400, {"error": str(e)})
+            return self.send(200, {"ok": True})
+        if self.path == "/api/match/ok":   # "Looks right" in Check matches
+            try:
+                name = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))["name"]
+                with cover_lock:
+                    db = load_covers()
+                    if name in db:
+                        db[name]["ok"] = True
+                        save_covers(db)
             except Exception as e:
                 return self.send(400, {"error": str(e)})
             return self.send(200, {"ok": True})
@@ -1348,8 +1711,7 @@ class Handler(BaseHTTPRequestHandler):
                 ent = fetch_cover(req["name"], (req.get("search") or "").strip() or None, req.get("id"))
                 db = load_covers()
                 db[req["name"]] = ent
-                with open(COVER_DB, "w") as f:
-                    json.dump(db, f, indent=1)
+                save_covers(db)
             forget_seasons(req["name"])
         except Exception as e:
             return self.send(400, {"error": str(e)})
@@ -1411,6 +1773,7 @@ class Handler(BaseHTTPRequestHandler):
                 old = []
             write_items(items)
             relay_state["wake"].set()
+            resolve_state["wake"].set()
             try:
                 log_history(old, items)
             except Exception:
@@ -1420,13 +1783,22 @@ class Handler(BaseHTTPRequestHandler):
         self.send(200, {"ok": True, "count": len(items)})
 
 
+class Server(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        # The browser closed a connection while we were answering (a reload, a closed tab). Not an error.
+        if isinstance(sys.exc_info()[1], ConnectionError):
+            return
+        super().handle_error(request, client_address)
+
+
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     port = int(args[0]) if args else 8765
     ensure_list()
-    server = SERVER = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server = SERVER = Server(("127.0.0.1", port), Handler)
     threading.Thread(target=update_loop, daemon=True).start()
     threading.Thread(target=relay_loop, daemon=True).start()
+    threading.Thread(target=resolve_loop, daemon=True).start()
     print(f"Animus Obscurus is running on http://127.0.0.1:{port}  (close this window to stop it)")
     if "--open" in sys.argv:
         webbrowser.open(f"http://127.0.0.1:{port}")

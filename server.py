@@ -161,7 +161,7 @@ SEASON_FIELDS = ("id format status episodes title{romaji english native} coverIm
                  "relations{edges{relationType node{id format title{romaji english}}}}")
 SEASON_QUERY = "query($id:Int){Media(id:$id){" + SEASON_FIELDS + "}}"
 SEASONS_DB = os.path.join(ROOT, "data", "seasons.json")
-SEASONS_V = 3             # bump when the shape or meaning of cached seasons changes
+SEASONS_V = 4             # bump when the shape or meaning of cached seasons changes
 AIRING_TTL = 3 * 3600     # airing shows gain episodes weekly
 SEASONS_TTL = 24 * 3600   # a day: a newly announced sequel should show up soon
 SEASON_FORMATS = ("TV", "TV_SHORT", "ONA")   # entries that count as a season
@@ -661,6 +661,18 @@ def build_seasons(media_id, nodes=None):
     return out
 
 
+GROUP_RELS = ("PARENT", "SIDE_STORY", "SPIN_OFF", "SUMMARY", "COMPILATION", "PREQUEL", "SEQUEL")
+
+
+def related_ids(media_id, nodes):
+    """Entries an OVA, movie or special hangs off (its parent series, side stories), so the page can put it on that show's card."""
+    n = nodes.get(media_id)
+    if not n:
+        return []
+    return [e["node"]["id"] for e in n["relations"]["edges"]
+            if e["relationType"] in GROUP_RELS and same_series(n["title"], e["node"].get("title") or {})]
+
+
 def seasons_fresh(ent):
     if not ent or ent.get("v") != SEASONS_V:
         return False  # older saves counted planned episodes as released
@@ -685,8 +697,9 @@ def seasons_for(name):
         if not cover or not cover["file"]:
             return None
         media_id = cover.get("id") or int(cover["file"].split(".")[0])
-        seasons = build_seasons(media_id)
-        db[name] = {"at": time.time(), "v": SEASONS_V, "seasons": seasons}
+        nodes = {}
+        seasons = build_seasons(media_id, nodes)
+        db[name] = {"at": time.time(), "v": SEASONS_V, "seasons": seasons, "rel": related_ids(media_id, nodes)}
         with open(SEASONS_DB, "w") as f:
             json.dump(db, f, indent=1)
         return seasons
@@ -1338,7 +1351,8 @@ def resolve_seasons(names, covers):
     built = {}
     for n in names:
         try:
-            built[n] = {"at": time.time(), "v": SEASONS_V, "seasons": build_seasons(covers[n]["id"], nodes)}
+            built[n] = {"at": time.time(), "v": SEASONS_V, "seasons": build_seasons(covers[n]["id"], nodes),
+                        "rel": related_ids(covers[n]["id"], nodes)}
         except Exception as e:
             print("seasons failed:", n, e)
         resolve_state["done"] += 1
@@ -1424,7 +1438,7 @@ def known():
             sdb = {}
     with info_lock:
         idb = load_info()
-    out = {"seasons": {}, "info": {}, "match": {}, "resolve": {k: v for k, v in resolve_state.items() if k != "wake"}}
+    out = {"seasons": {}, "rel": {}, "info": {}, "match": {}, "resolve": {k: v for k, v in resolve_state.items() if k != "wake"}}
     for it in read_items():
         n, c = it["name"], covers.get(it["name"])
         if c is None:
@@ -1434,6 +1448,7 @@ def known():
         s = sdb.get(n)
         if s and s.get("v") == SEASONS_V:
             out["seasons"][n] = s["seasons"]
+            out["rel"][n] = s.get("rel", [])
         i = idb.get(str(c.get("id"))) if c.get("file") else None
         if i and "titles" in i:
             out["info"][n] = i

@@ -1,5 +1,10 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.5.1
+**Fixes**
+- **Sharing works on more PCs.** On some Windows PCs, making a share code or adding a friend's code said "couldn't reach the sharing service" even though everything else worked. Windows hadn't stored the security certificate the sharing service uses, and Animus now brings that certificate along itself.
+- If sharing still can't connect, the message now says why: the certificate wasn't accepted, the address couldn't be looked up (a network or filter blocking it), it didn't answer in time, or a firewall refused it.
+
 ## 1.5.0
 **New**
 - **One card per show.** A show's seasons, movies, OVAs, specials and spin-offs on your list now share one card (a chip like "+2 · Movie, OVA" shows what's inside). Nothing on your list is merged or renamed: each entry keeps its own status and progress.

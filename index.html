@@ -327,6 +327,15 @@ body.gallery #toTop { opacity: 0; pointer-events: none; }
 #gear.has-update .dot { display: block; }
 .gearpanel .it.upd b { color: var(--accent); }
 body.nomascot #gear { top: 16px; }
+#xfer { position: fixed; right: 18px; top: 140px; z-index: 6; width: 52px; height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center;
+  background: var(--raised); color: var(--ink); box-shadow: 0 4px 14px #0003; opacity: 0; transition: opacity .2s, background .15s; }
+#xfer.ready { opacity: 1; }
+body.nomascot #xfer { top: 78px; }
+#xfer svg { width: 26px; height: 26px; fill: currentColor; transition: transform .3s var(--mat-easing); }
+#xfer:hover svg { transform: scale(1.12); }
+#xfer[aria-expanded=true] { background: var(--fill-tone); color: var(--on-tone); }
+body.gallery #xfer { opacity: 0; pointer-events: none; }
+#xfer[data-tip]::after { bottom: auto; top: 50%; left: auto; right: calc(100% + 10px); transform: translateY(-50%); }
 #gear svg { width: 26px; height: 26px; fill: currentColor; }
 #gear svg { transition: transform .3s var(--mat-easing); }
 #gear:hover svg { transform: rotate(40deg); }
@@ -517,7 +526,7 @@ textarea.notes:focus-visible { outline: 2px solid var(--accent); outline-offset:
 html[data-look] *:not(img):not(svg):not(path):not(.dot):not(.mascot) { border-radius: var(--lk-r) !important; }
 html[data-look] li, html[data-look] .menu, html[data-look] .modal .panel, html[data-look] .gearpanel, html[data-look] .shelf, html[data-look] .tabs,
 html[data-look] input:not([type=checkbox]):not([type=radio]), html[data-look] .bar button, html[data-look] form.add button, html[data-look] .ctrl button,
-html[data-look] .blk, html[data-look] a.play, html[data-look] #gear, html[data-look] #toTop { border: var(--lk-bw) solid var(--lk-line) !important; }
+html[data-look] .blk, html[data-look] a.play, html[data-look] #gear, html[data-look] #xfer, html[data-look] #toTop { border: var(--lk-bw) solid var(--lk-line) !important; }
 html[data-look] li, html[data-look] .menu, html[data-look] .modal .panel, html[data-look] .gearpanel { backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: var(--lk-shadow); }
 html[data-look] li:hover { transform: translate(-2px, -2px); box-shadow: var(--lk-shadow-hover); }
 html[data-look] .wordmark { letter-spacing: var(--lk-track); }
@@ -603,10 +612,12 @@ html[data-look=retro] .tabs .thumb { box-shadow: 0 0 0 3px #1d1b3a; }
 <button class="head" id="headBtn" hidden><span><img alt=""></span></button>
 <div class="mascot-name" id="mascotName"></div>
 <button id="gear" aria-label="Settings" aria-haspopup="dialog" data-tip="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54A.48.48 0 0 0 13.9 2h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.7 8.47a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94L2.81 14.12a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></button>
+<button id="xfer" aria-label="Import and export" aria-haspopup="dialog" data-tip="Import &amp; export"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3 5 7h3v7h2V7h3zm7 7v7h-3l4 4 4-4h-3v-7z"/></svg></button>
 <button id="toTop" aria-label="Back to top" data-tip="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.4l-7 7 1.9 1.9L12 11.2l5.1 5.1 1.9-1.9z"/></svg></button>
 <input type="file" id="restoreFile" accept=".zip" hidden>
 <input type="file" id="friendFile" accept=".json" hidden>
 <input type="file" id="malFile" accept=".xml,.gz" hidden>
+<input type="file" id="apFile" accept=".json" hidden>
 <div id="status"></div>
 <script>
 // Any streaming site works. Each season stores one episode link with {ep} where the episode
@@ -655,6 +666,11 @@ const SORT_FNS = {
   malpop: (a, b) => (infoOf[a.name]?.mal_pop || 1e9) - (infoOf[b.name]?.mal_pop || 1e9) || byName(a, b),   // #1 is the most popular
   year: (a, b) => (infoOf[b.name]?.year || 0) - (infoOf[a.name]?.year || 0) || byName(a, b),
 };
+// Titles can be shown in English (as saved), Japanese in Latin letters (romaji) or in Japanese script. Only the display changes: the saved name stays.
+const TITLE_LANGS = [["en", "English"], ["ro", "Japanese (romaji)"], ["jp", "Japanese (日本語)"]];
+let titleLang = TITLE_LANGS.some(([k]) => k === localStorage.getItem("titleLang")) ? localStorage.getItem("titleLang") : "en";
+const shownName = it => titleLang === "en" ? it.name : infoOf[it.name]?.titles?.[titleLang] || it.name;
+const shownTitle = o => titleLang === "en" ? o.title : o[titleLang] || o.title;   // a Discover or Calendar row
 const infoOf = {};      // title -> {year, rating, ratingText, uncensored, tags}, false if unavailable
 const filt = { year: "", rating: "", with: "", tags: new Set() };
 const splitWith = it => (it.with || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
@@ -703,6 +719,7 @@ const IC = {
   play: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z",
   history: "M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
   up: "M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z",
+  translate: "M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z",
 };
 function ico(name) {
   const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg"), path = document.createElementNS(NS, "path");
@@ -964,7 +981,7 @@ function render() {
   }));
   slideTabs($("tabs"), "tabs");
   renderFilters();
-  const ok = i => i.name.toLowerCase().includes(q) && passes(i);
+  const ok = i => (i.name.toLowerCase().includes(q) || shownName(i).toLowerCase().includes(q)) && passes(i);
   const open = items;   // any title can be airing, so all of them need their season info
   const pinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
   const soonest = (a, b) => airing(a).at - airing(b).at;
@@ -1001,7 +1018,7 @@ function renderContinue() {
     };
     const img = el("img", { loading: "lazy", alt: "", src: coverSrc(it) });
     img.onerror = () => img.replaceWith(el("div", { className: "ph", textContent: it.name[0].toUpperCase() }));
-    a.append(img, el("b", { textContent: it.name }), el("span", { textContent: isMovie(it) ? "Movie" : `S${next.s} E${next.e} next` }));
+    a.append(img, el("b", { textContent: shownName(it) }), el("span", { textContent: isMovie(it) ? "Movie" : `S${next.s} E${next.e} next` }));
     strip.append(a);
   }
   box.replaceChildren(el("h3", { textContent: "Continue watching" }), strip);
@@ -1639,7 +1656,7 @@ function turn(li, it) {
 
 function backFace(it, li) {
   const head = el("div", { className: "backhead" });
-  head.append(el("span", { className: "name", textContent: it.name }), flipBtn("Done", () => turn(li, it)));
+  head.append(el("span", { className: "name", textContent: shownName(it) }), flipBtn("Done", () => turn(li, it)));
   const notes = el("textarea", { className: "notes", value: it.notes, placeholder: "Notes…" });
   notes.setAttribute("aria-label", "Notes");
   let t;
@@ -1674,7 +1691,7 @@ function row(it) {
 }
 
 function frontFace(it, li) {
-  const a = el("a", { className: "name", textContent: it.name, target: "_blank", rel: "noopener",
+  const a = el("a", { className: "name", textContent: shownName(it), target: "_blank", rel: "noopener",
     href: siteSearch ? searchUrl(it.name) : "#" });
   a.dataset.tip = (siteSearch ? "Search on your site" : "Set your streaming site") + " · Ctrl+click to rename";
   a.onclick = ev => {
@@ -1845,8 +1862,9 @@ const gear = $("gear");
 function closeGear(refocus) {
   const p = document.querySelector(".gearpanel");
   if (!p) return;
-  p.remove(); gear.setAttribute("aria-expanded", "false");
-  if (refocus) gear.focus();
+  const owner = $("xfer").getAttribute("aria-expanded") === "true" ? $("xfer") : gear;
+  p.remove(); gear.setAttribute("aria-expanded", "false"); $("xfer").setAttribute("aria-expanded", "false");
+  if (refocus) owner.focus();
 }
 let wideCards = localStorage.getItem("layout") === "wide";
 document.body.classList.toggle("wide-cards", wideCards);
@@ -1868,18 +1886,25 @@ function gearItems() {
     ...updateGroup(),
     ["Look", [["look", "sparkle", "Special look", look ? `Now: ${LOOKS[look].name}${lookPick ? " (with your picked show's colours)" : ""}` : "Paper / Manga, Neon Tokyo, Retro 90s: a whole new style"],
       ["theme", "palette", "Theme from a show", theme ? `Now: ${theme}` : "Colours and background art taken from a cover you pick"],
+      ["titles", "translate", "Title language", `Now: ${TITLE_LANGS.find(([k]) => k === titleLang)[1]}. Tap to switch to ${TITLE_LANGS[(TITLE_LANGS.findIndex(([k]) => k === titleLang) + 1) % 3][1]}`],
       ["layout", "grid", "Wide cards", wideCards ? "On. Bigger cards with more room and larger buttons" : "Off. The compact grid; turn on for roomier cards"]]],
     ["Streaming", [["site", "play", "Streaming site", host ? `Now: ${host}` : "The site your ▶ buttons and title links open (not set yet)"]]],
     ["Friends", [["me", "person", "Your name", me ? `Shown as “${me}” on your recommendations` : "Shown on the recommendations you share"],
       ["share", "share", "Share with friends", relay?.sharing ? "On. Show my share code" : "Get a code friends can add; their lists and yours stay up to date"],
-      ["code", "personAdd", "Add a friend's code", "Paste the code a friend sent you"],
-      ["export", "download", "Save my recommendations as a file", "For friends who can't use a code"],
-      ["import", "file", "Add a friend's file", "Open a file a friend sent you"]]],
-    ["Your data", [["mal", "upload", "Import from MyAnimeList", "Adds the shows from your MAL export file (your current list is kept)"],
-      ["backup", "download", "Back up my list", "Downloads everything as one file"],
-      ["restore", "history", "Restore from a backup", "Replaces your list with a backup file"]]],
+      ["code", "personAdd", "Add a friend's code", "Paste the code a friend sent you"]]],
     ["Updates", [["check", "refresh", "Check for updates", upd?.error ? `Couldn't check: ${upd.error}` : `You have v${version}${upd?.checked ? ", checked " + new Date(upd.checked * 1000).toLocaleDateString() : ""}`],
       ["auto", upd?.auto === false ? "○" : "●", "Check automatically", upd?.auto === false ? "Off. Animus never contacts GitHub on its own" : "On. Looks like a nice day for an update: checks once a day"]]],
+  ];
+}
+// The second round button under the gear: everything that moves a list in or out.
+function xferItems() {
+  return [
+    ["Bring in a list", [["mal", "upload", "MyAnimeList", "Adds the shows from your MAL export (.xml). Your current list is kept"],
+      ["ap", "upload", "Anime-Planet", "Adds the shows from your Anime-Planet export (.json). Your current list is kept"]]],
+    ["Back up", [["backup", "download", "Back up my list", "Downloads everything as one file"],
+      ["restore", "history", "Restore from a backup", "Replaces your list with a backup file"]]],
+    ["Friends' files", [["export", "share", "Save my recommendations as a file", "For friends who can't use a share code"],
+      ["import", "file", "Add a friend's file", "Open a file a friend sent you"]]],
   ];
 }
 function gearAction(act) {
@@ -1894,19 +1919,24 @@ function gearAction(act) {
   else if (act === "update") installUpdate();
   else if (act === "check") { flash("Checking…"); loadUpdate(true).then(() => flash(upd?.available ? `v${upd.latest} is available` : upd?.error ? `Couldn't check: ${upd.error}` : "You're up to date", !!upd?.error && !upd.available)); }
   else if (act === "auto") { const on = upd?.auto === false; fetch("/api/settings", { method: "PUT", body: JSON.stringify({ autoupdate: on }) }).then(loadUpdate).then(() => { flash(on ? "Automatic checks are on" : "Automatic checks are off"); gear.click(); }); }
+  else if (act === "titles") {
+    titleLang = TITLE_LANGS[(TITLE_LANGS.findIndex(([k]) => k === titleLang) + 1) % 3][0];
+    localStorage.setItem("titleLang", titleLang);
+    flash(`Titles: ${TITLE_LANGS.find(([k]) => k === titleLang)[1]}${titleLang !== "en" ? ". Titles fill in as each show is looked up" : ""}`);
+    render();
+  }
   else if (act === "layout") { wideCards = !wideCards; localStorage.setItem("layout", wideCards ? "wide" : "compact"); document.body.classList.toggle("wide-cards", wideCards); render(); }
   else if (act === "mal") $("malFile").click();
+  else if (act === "ap") $("apFile").click();
   else if (act === "backup") location.href = "/api/backup";
   else if (act === "restore") $("restoreFile").click();
 }
-gear.onclick = async () => {
-  if (document.querySelector(".gearpanel")) return closeGear();
-  await Promise.all([loadUpdate(), loadRelay()]);   // always show what the server says now
-  if (document.querySelector(".gearpanel")) return;
+// One floating panel for both round buttons: a list of [title, rows], each row [action, icon, name, hint].
+function openPanel(btn, label, groups, foot) {
   closeMenu();
   const panel = el("div", { className: "gearpanel" });
-  panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", "Settings");
-  for (const [title, rows] of gearItems()) {
+  panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", label);
+  for (const [title, rows] of groups) {
     panel.append(el("h4", { textContent: title }));
     for (const [act, icon, name, hint] of rows) {
       const b = el("button", { className: "it", type: "button" });
@@ -1919,17 +1949,24 @@ gear.onclick = async () => {
       panel.append(b);
     }
   }
+  if (foot) panel.append(foot);
+  document.body.append(panel);
+  panel.style.top = `${btn.getBoundingClientRect().bottom + 10}px`;
+  btn.setAttribute("aria-expanded", "true");
+  panel.tabIndex = -1; panel.focus({ preventScroll: true });   // arrow keys / Tab then move to the first item
+}
+gear.onclick = async () => {
+  if (document.querySelector(".gearpanel")) return closeGear();
+  await Promise.all([loadUpdate(), loadRelay()]);   // always show what the server says now
+  if (document.querySelector(".gearpanel")) return;
   const foot = el("div", { className: "foot" });
   foot.append(el("span", { textContent: version ? `Animus Obscurus v${version}` : "Animus Obscurus" }),
     el("button", { type: "button", textContent: "What's new", onclick: () => { closeGear(); showChangelog(); } }));
-  panel.append(foot);
-  document.body.append(panel);
-  panel.style.top = `${gear.getBoundingClientRect().bottom + 10}px`;
-  gear.setAttribute("aria-expanded", "true");
-  panel.tabIndex = -1; panel.focus({ preventScroll: true });   // arrow keys / Tab then move to the first item
+  openPanel(gear, "Settings", gearItems(), foot);
 };
+$("xfer").onclick = () => { if (document.querySelector(".gearpanel")) return closeGear(); openPanel($("xfer"), "Import and export", xferItems()); };
 document.addEventListener("pointerdown", ev => {
-  if (document.querySelector(".gearpanel") && !ev.target.closest(".gearpanel") && !ev.target.closest("#gear")) closeGear();
+  if (document.querySelector(".gearpanel") && !ev.target.closest(".gearpanel") && !ev.target.closest("#gear") && !ev.target.closest("#xfer")) closeGear();
 });
 document.addEventListener("keydown", ev => {
   const panel = document.querySelector(".gearpanel");
@@ -1943,7 +1980,7 @@ document.addEventListener("keydown", ev => {
 }, true);
 addEventListener("resize", () => closeGear());
 // The gear takes the mascot badge's place when there is no mascot.
-function placeGear(hasMascot) { document.body.classList.toggle("nomascot", !hasMascot); gear.classList.add("ready"); }
+function placeGear(hasMascot) { document.body.classList.toggle("nomascot", !hasMascot); gear.classList.add("ready"); $("xfer").classList.add("ready"); }
 
 async function installUpdate() {
   if (!upd?.available || !confirm(`Update Animus to v${upd.latest}?\nYour list and settings are not touched. The page reloads when it's done.`)) return;
@@ -2055,7 +2092,7 @@ function isFresh(sh) {   // premiered in the last week or so
 }
 function dShows() {
   const all = dData[dKey(dIdx)] || [];
-  let list = all.filter(sh => (!dGenre || sh.genres.includes(dGenre)) && (!dQuery || sh.title.toLowerCase().includes(dQuery)) && !(dHide && onMyList(sh)));
+  let list = all.filter(sh => (!dGenre || sh.genres.includes(dGenre)) && (!dQuery || sh.title.toLowerCase().includes(dQuery) || shownTitle(sh).toLowerCase().includes(dQuery)) && !(dHide && onMyList(sh)));
   if (dSort === "soonest") list = list.filter(sh => sh.next).sort((a, b) => a.next.at - b.next.at);
   else if (dSort === "rated") list = list.sort((a, b) => (b.score || 0) - (a.score || 0));
   else if (dSort === "new") list = list.filter(isFresh).sort((a, b) => b.popularity - a.popularity);
@@ -2069,12 +2106,12 @@ function airLine(sh) {
 }
 function discoverCard(sh) {
   const card = el("article", { className: "dcard" });
-  const poster = el("div", { className: "poster", textContent: sh.title[0].toUpperCase() });
+  const poster = el("div", { className: "poster", textContent: shownTitle(sh)[0].toUpperCase() });
   const img = el("img", { src: sh.cover, alt: "", loading: "lazy" });
   img.onerror = () => img.remove();
   poster.append(img);
   const top = el("div", { className: "top" });
-  top.append(el("h3", { textContent: sh.title }));
+  top.append(el("h3", { textContent: shownTitle(sh) }));
   if (sh.score) top.append(el("span", { className: "score", textContent: `★ ${(sh.score / 10).toFixed(1)}`, title: "AniList average score" }));
   const len = sh.format === "MOVIE" ? (sh.duration ? `${sh.duration} min` : "") : sh.episodes ? `${sh.episodes} eps` : "";
   const tags = el("div", { className: "tags" });
@@ -2187,7 +2224,7 @@ function renderCalendar() {
       const limit = cOpen.has(i) ? day.length : Math.max(10, day.filter(x => x.mine).length);
       for (const x of day.slice(0, limit)) {
         const a = el("a", { className: "cep" + (x.mine ? " mine" : "") + (x.at * 1000 < nowMs ? " past" : ""), href: `https://anilist.co/anime/${x.id}`, target: "_blank", rel: "noopener" });
-        const t = el("div"), name = el("b", { textContent: x.title });
+        const t = el("div"), name = el("b", { textContent: shownTitle(x) });
         t.append(name, el("small", { textContent: `Ep ${x.ep}${x.eps ? ` of ${x.eps}` : ""} · ${new Date(x.at * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` }));
         a.append(el("img", { src: x.cover, alt: "", loading: "lazy" }), t);
         col.append(a);
@@ -2335,6 +2372,38 @@ $("malFile").onchange = async ev => {
     tab = "all"; localStorage.setItem("tab2", tab);
     render(); save();
     flash(`Added ${added} shows from MyAnimeList${skipped ? ` (${skipped} already on your list)` : ""}. Covers fill in as you scroll.`);
+  } catch { flash("Couldn't read that file", true); }
+};
+// Anime-Planet export (.json): {user, entries: [{name, status, eps, rating (0-5 stars), ...}]}; adds what isn't on the list yet.
+const AP_STATUS = { "watching": "started", "watched": "finished", "want to watch": "not started", "stalled": "on hold", "dropped": "dropped" };
+$("apFile").onchange = async ev => {
+  const f = ev.target.files[0];
+  ev.target.value = "";
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const rows = Array.isArray(data) ? data : data.entries;
+    if (!Array.isArray(rows) || !rows.some(r => r && (r.name || r.title) && r.status)) return flash("That doesn't look like an Anime-Planet export", true);
+    const have = new Set(items.map(i => i.name.toLowerCase()));
+    let added = 0, skipped = 0, wont = 0;
+    for (const r of rows) {
+      const name = String(r.name || r.title || "").trim(), st = String(r.status || "").toLowerCase();
+      if (st === "won't watch") { wont++; continue; }   // nothing on this list matches "won't watch"
+      if (!name || have.has(name.toLowerCase())) { skipped++; continue; }
+      have.add(name.toLowerCase());
+      const status = AP_STATUS[st] || "not started";
+      const movie = /movie/i.test(String(r.type || ""));
+      const seen = Math.max(0, parseInt(r.eps) || 0);
+      const e = status === "finished" ? Math.max(seen, 1) : seen;   // an episode must be picked, or the show would count as Not started
+      const stars = Math.round((+r.rating || 0) * 2);   // Anime-Planet scores in half-stars out of 5
+      items.push({ name, progress: movie ? "Movie" : e ? fmt({ s: 1, e }) : "", status, notes: "", cover: "", links: "",
+        rating: stars >= 1 && stars <= 10 ? String(stars) : "", pinned: false, rec: false, with: "" });
+      added++;
+    }
+    if (!added) return flash(`Nothing new: all ${skipped} shows are already on your list`);
+    tab = "all"; localStorage.setItem("tab2", tab);
+    render(); save();
+    flash(`Added ${added} shows from Anime-Planet${skipped ? ` (${skipped} already on your list)` : ""}${wont ? `, ${wont} "won't watch" left out` : ""}. Covers fill in as you scroll.`);
   } catch { flash("Couldn't read that file", true); }
 };
 $("restoreFile").onchange = async ev => {

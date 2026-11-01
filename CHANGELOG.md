@@ -1,5 +1,11 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.4.1
+**New**
+- **Import from Anime-Planet.** The new round **Import & export** button (under the gear) takes your Anime-Planet export file (.json) and adds the shows that aren't on your list yet, with their status, episodes watched and score. "Won't watch" shows are left out.
+- **Import & export button.** Importing (MyAnimeList, Anime-Planet), backing up and restoring, and the friends' files moved out of the gear menu into it, so the gear is shorter.
+- **Title language** (gear → Title language): show titles in English, Japanese in Latin letters (romaji), or Japanese script. Only the display changes; your saved names stay as they are, and searching finds a show under any of its titles.
+
 ## 1.4.0
 **New**
 - **Share your picks with a code.** Open **Friends**, tap **Share my picks** and send the code to a friend. They paste it under **Add friend**, and your 👍 picks stay up to date on their side with nothing to export again. Only your recommendations are shared, you can get a new code or stop sharing any time, and files still work too.

@@ -6,7 +6,7 @@ A personal anime tracker that runs on your own computer. No account, no cloud: y
 - **Airing tab, covers, ratings and genres** from AniList (cached on disk, so MyAnimeList's Jikan API is barely touched).
 - **Discover** what's airing this season (or any past or upcoming one) and add it to your list in one click.
 - **Share recommendations with friends** with a short code (no accounts, nothing but your 👍 picks is shared), or as a small file. Compare lists with a friend.
-- **Import your MyAnimeList** export file.
+- **Import your MyAnimeList or Anime-Planet** export file.
 - **Themes from any show's cover**, backups, and **one-click updates** from GitHub Releases.
 
 ## Latest release features

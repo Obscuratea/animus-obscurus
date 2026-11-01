@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -381,6 +381,8 @@ def build_info(media_id):
             "rated": not m.get("idMal"),   # nothing to ask MAL about without an id
             "desc": tidy_description(m.get("description")),
             "al_score": m.get("averageScore"),
+            "titles": {"en": m["title"].get("english") or m["title"]["romaji"], "ro": m["title"]["romaji"],
+                       "jp": m["title"].get("native") or m["title"]["romaji"]},
             "uncensored": any(UNCENSORED_RE.search(n or "") for n in names),
             "tags": list(dict.fromkeys(m["genres"] + [t["name"] for t in tags[:8]]))}
 
@@ -400,7 +402,7 @@ def info_for(name):
             ent["rated"] = True
         else:
             ent = None
-    if not ent or "format" not in ent or "desc" not in ent or "al_score" not in ent or time.time() - ent["at"] > INFO_TTL:
+    if not ent or "format" not in ent or "desc" not in ent or "al_score" not in ent or "titles" not in ent or time.time() - ent["at"] > INFO_TTL:
         try:
             fresh = {"at": time.time(), **build_info(media_id)}
         except Exception:
@@ -562,7 +564,7 @@ DISCOVER_DB = os.path.join(ROOT, "data", "discover.json")
 DISCOVER_QUERY = """query($season:MediaSeason,$year:Int,$page:Int){Page(page:$page,perPage:50){pageInfo{hasNextPage}
   media(season:$season,seasonYear:$year,type:ANIME,isAdult:false,format_in:[TV,TV_SHORT,MOVIE,ONA,OVA],sort:POPULARITY_DESC){
   id format episodes duration status averageScore popularity genres description(asHtml:false)
-  studios(isMain:true){nodes{name}} coverImage{extraLarge} title{romaji english}
+  studios(isMain:true){nodes{name}} coverImage{extraLarge} title{romaji english native}
   startDate{year month day} nextAiringEpisode{episode airingAt}}}}"""
 SEASONS = ("WINTER", "SPRING", "SUMMER", "FALL")
 discover_lock = threading.Lock()
@@ -590,7 +592,7 @@ def discover(season, year):
         ent = db.get(key)
         # A season still running changes by the hour (new episodes), a finished one hardly at all.
         ttl = 3 * 3600 if year * 4 + SEASONS.index(season) >= time.localtime().tm_year * 4 + (time.localtime().tm_mon - 1) // 3 - 1 else 7 * 24 * 3600
-        if ent and time.time() - ent["at"] < ttl:
+        if ent and time.time() - ent["at"] < ttl and all("ro" in x for x in ent["shows"][:1]):   # older saves lack the other titles
             return ent
         shows = []
         try:
@@ -599,7 +601,7 @@ def discover(season, year):
                 for m in data["media"]:
                     t = m["title"]
                     nxt = m.get("nextAiringEpisode")
-                    shows.append({"id": m["id"], "title": t.get("english") or t["romaji"], "format": m["format"],
+                    shows.append({"id": m["id"], "title": t.get("english") or t["romaji"], "ro": t["romaji"], "jp": t.get("native") or t["romaji"], "format": m["format"],
                                   "episodes": m["episodes"], "duration": m["duration"], "status": m["status"],
                                   "score": m["averageScore"], "popularity": m["popularity"], "genres": m["genres"],
                                   "studio": (m["studios"]["nodes"] or [{}])[0].get("name", ""),
@@ -622,7 +624,7 @@ def discover(season, year):
 CAL_DB = os.path.join(ROOT, "data", "calendar.json")
 CAL_QUERY = """query($from:Int,$to:Int,$page:Int){Page(page:$page,perPage:50){pageInfo{hasNextPage}
   airingSchedules(airingAt_greater:$from,airingAt_lesser:$to,sort:TIME){airingAt episode
-  media{id format episodes isAdult popularity title{romaji english} coverImage{large}}}}}"""
+  media{id format episodes isAdult popularity title{romaji english native} coverImage{large}}}}}"""
 cal_lock = threading.Lock()
 
 
@@ -638,7 +640,7 @@ def calendar(start, days=7):
         ent = db.get(key)
         # this week and later change as schedules are published; a past week never changes
         ttl = 3600 if start + days * 86400 > time.time() else 30 * 24 * 3600
-        if ent and time.time() - ent["at"] < ttl:
+        if ent and time.time() - ent["at"] < ttl and all("ro" in x for x in ent["items"][:1]):   # older saves lack the other titles
             return ent
         rows = []
         try:
@@ -649,7 +651,7 @@ def calendar(start, days=7):
                     if m["isAdult"] or m["format"] not in ("TV", "TV_SHORT", "MOVIE", "ONA", "OVA"):
                         continue
                     t = m["title"]
-                    rows.append({"id": m["id"], "title": t.get("english") or t["romaji"], "cover": m["coverImage"]["large"],
+                    rows.append({"id": m["id"], "title": t.get("english") or t["romaji"], "ro": t["romaji"], "jp": t.get("native") or t["romaji"], "cover": m["coverImage"]["large"],
                                  "at": r["airingAt"], "ep": r["episode"], "eps": m["episodes"], "format": m["format"], "pop": m["popularity"]})
                 if not data["pageInfo"]["hasNextPage"]:
                     break

@@ -772,7 +772,7 @@ const seasonsOf = {};   // title -> [{n, id, episodes}] from AniList, false if u
 const coverBust = {};
 
 const $ = id => document.getElementById(id);
-const isMovie = it => /^movie$/i.test(it.progress) || (!parse(it.progress) && infoOf[it.name]?.format === "MOVIE");   // AniList says movie, or it was added as one
+const isMovie = it => /^movie$/i.test(it.progress) || ((!parse(it.progress) || /^S1 E[01]$/i.test(it.progress)) && infoOf[it.name]?.format === "MOVIE");   // added as one, or AniList says so (imports bring movies in as "S1 E1")
 const parse = p => { const m = /^S(\d+)(?:\s*E(\d+))?$/i.exec(p); return m ? { s: +m[1], e: +(m[2] || 0) } : null; };
 const fmt = ({ s, e }) => e ? `S${s} E${e}` : `S${s}`;
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
@@ -830,9 +830,9 @@ function flash(msg, err) {
   clearTimeout(flash.t); flash.t = setTimeout(() => box.className = "", err ? 4500 : 1800);   // errors stay long enough to read
 }
 
-async function save() {
+async function save(imported) {
   try {
-    const r = await fetch("/api/items", { method: "PUT", body: JSON.stringify(items) });
+    const r = await fetch("/api/items", { method: "PUT", body: JSON.stringify(imported ? { items, imported } : items) });
     if (!r.ok) throw new Error((await r.json()).error);
     flash("Saved to sheet");
     clearTimeout(knownTimer); knownTimer = setTimeout(loadKnown, 6000);   // new names get matched in the background
@@ -1164,7 +1164,7 @@ function matchDoubt(it) {
   const m = matchOf[it.name];
   if (!m || m.manual || m.ok) return "";
   if (m.none) return "Not found";
-  if (MINOR_FMT.has(m.fmt) && !MINOR_RE.test(it.name)) return `Matched to ${{ SPECIAL: "a special", OVA: "an OVA", MUSIC: "a music video", TV_SHORT: "a short" }[m.fmt]}`;
+  if (MINOR_FMT.has(m.fmt) && !MINOR_RE.test(it.name) && !(m.conf >= 0.95)) return `Matched to ${{ SPECIAL: "a special", OVA: "an OVA", MUSIC: "a music video", TV_SHORT: "a short" }[m.fmt]}`;
   if (m.fmt && !MINOR_FMT.has(m.fmt) && MINOR_RE.test(it.name)) return `No separate entry found, matched to the ${m.fmt === "MOVIE" ? "movie" : "main series"}`;
   if (typeof m.conf === "number" && m.conf < 0.72) return "Title is only a loose fit";
   return "";
@@ -1771,7 +1771,7 @@ function cover(it) {
   corner.append(cornerBtn(PIN_ICON, it.pinned, it.pinned ? "Unpin" : "Pin to the top", () => edit(it, i => i.pinned = !i.pinned)),
     cornerBtn(THUMB_ICON, it.rec, it.rec ? "Remove from recommendations" : "Recommend to friends", () => edit(it, i => i.rec = !i.rec)));
   box.append(corner);
-  if (it.progress) box.append(el("span", { className: "prog-badge", textContent: it.progress }));
+  if (it.progress) box.append(el("span", { className: "prog-badge", textContent: isMovie(it) ? "Movie" : it.progress }));
   return box;
 }
 
@@ -2085,7 +2085,8 @@ function seasonEntries(lead, others, ss) {
     const row = el("div", { className: "entry" + (cur ? " cur" : "") });
     const txt = el("div");
     const facts = [x.episodes != null ? `${x.episodes} episodes` : "", x.next ? `E${x.next.episode} airs in ${untilText(x.next.at)}` : x.airing ? "Airing" : ""].filter(Boolean);
-    const state = n < s || (n === s && done) ? "Watched" : cur ? (e ? `Watching · up to E${e}` : "Up next") : "Not yet";
+    const paused = { dropped: "Dropped", "on hold": "On hold" }[lead.status];
+    const state = n < s || (n === s && done) ? "Watched" : cur ? (paused ? `${paused}${e ? ` at E${e}` : ""}` : e ? `Watching · up to E${e}` : "Up next") : "Not yet";
     txt.append(el("div", { className: "et", textContent: `S${n} · ${shownTitle(x)}` }),
       el("div", { className: "em" + (cur ? " on" : ""), textContent: [state, ...facts].join(" · ") }));
     const own = ownRow.get(i);
@@ -2690,6 +2691,27 @@ $("friendFile").onchange = async ev => {
     view === "friends" ? render() : setView("friends");
   } catch { flash("Couldn't read that file", true); }
 };
+// An export's watch dates go into the log Stats reads, instead of everything counting as watched on the day of the import.
+// Re-importing the same file fixes lists imported before 1.5.0 (their import-day entries give way to the real dates).
+const exportTime = v => {
+  const t = Date.parse(String(v || "").trim().replace(" ", "T").replace(/([+-]\d\d)$/, "$1:00"));
+  return !v || /^0000/.test(v) || isNaN(t) ? 0 : Math.floor(t / 1000);
+};
+function datedEvents(name, prog, started, done) {
+  const ev = [];
+  if (done) ev.push({ t: done, name, from: "", to: prog, was: "", status: "finished" });
+  if (started && (!done || done - started > 86400)) ev.push({ t: started, name, from: "", to: done ? "" : prog, was: "", status: "started" });
+  return ev;
+}
+async function importDates(events, replace) {
+  if (!events.length && !replace.length) return;
+  try { await fetch("/api/history/import", { method: "POST", body: JSON.stringify({ events, replace }) }); } catch {}
+  sLog = null;
+  if (view === "stats") loadLog();
+}
+const importNote = (src, added, skipped, dated, extra = "") => (added ? `Added ${added} shows from ${src}${skipped ? ` (${skipped} already on your list)` : ""}`
+  : `Nothing new: all ${skipped} shows are already on your list`) + extra + (dated ? `. Watch dates for ${dated} shows went into Stats` : "") + (added ? ". Covers fill in as you scroll." : "");
+
 // MyAnimeList export (animelist_*.xml or .xml.gz): adds what isn't on the list yet.
 const MAL_STATUS = { "watching": "started", "completed": "finished", "on-hold": "on hold", "dropped": "dropped", "plan to watch": "not started" };
 $("malFile").onchange = async ev => {
@@ -2702,30 +2724,33 @@ $("malFile").onchange = async ev => {
     const doc = new DOMParser().parseFromString(await new Response(buf).text(), "text/xml");
     const rows = [...doc.querySelectorAll("anime")];
     if (!rows.length || doc.querySelector("parsererror")) return flash("That doesn't look like a MyAnimeList export", true);
-    const have = new Set(items.map(i => i.name.toLowerCase()));
+    const have = new Map(items.map(i => [i.name.toLowerCase(), i]));
     const get = (n, t) => (n.querySelector(t)?.textContent || "").trim();
     let added = 0, skipped = 0;
+    const events = [], replace = [], fresh = [];
     for (const n of rows) {
       const name = get(n, "series_title");
-      if (!name || have.has(name.toLowerCase())) { skipped++; continue; }
-      have.add(name.toLowerCase());
+      if (!name) continue;
       const status = MAL_STATUS[get(n, "my_status").toLowerCase()] || "not started";
       const movie = /movie/i.test(get(n, "series_type"));
       const seen = parseInt(get(n, "my_watched_episodes")) || 0;
       const total = parseInt(get(n, "series_episodes")) || 0;
       const e = status === "finished" ? (seen || total) : seen;
       const score = parseInt(get(n, "my_score")) || 0;
-      items.push({ name, progress: movie ? "Movie" : e ? fmt({ s: 1, e }) : "", status, notes: "", cover: "", links: "",
-        rating: score >= 1 && score <= 10 ? String(score) : "", pinned: false, rec: false, with: "" });
+      const progress = movie ? "Movie" : e ? fmt({ s: 1, e }) : "", old = have.get(name.toLowerCase());
+      events.push(...datedEvents(old ? old.name : name, progress, exportTime(get(n, "my_start_date")), exportTime(get(n, "my_finish_date"))));
+      if (old) { replace.push(old.name); skipped++; continue; }
+      const it = { name, progress, status, notes: "", cover: "", links: "", rating: score >= 1 && score <= 10 ? String(score) : "", pinned: false, rec: false, with: "" };
+      items.push(it); have.set(name.toLowerCase(), it); fresh.push(name);
       added++;
     }
-    if (!added) return flash(`Nothing new: all ${skipped} shows are already on your list`);
-    tab = "all"; localStorage.setItem("tab2", tab);
-    render(); save();
-    flash(`Added ${added} shows from MyAnimeList${skipped ? ` (${skipped} already on your list)` : ""}. Covers fill in as you scroll.`);
+    if (added) { tab = "all"; localStorage.setItem("tab2", tab); render(); await save(fresh); }
+    await importDates(events, replace);
+    flash(importNote("MyAnimeList", added, skipped, new Set(events.map(e => e.name)).size));
   } catch { flash("Couldn't read that file", true); }
 };
-// Anime-Planet export (.json): {user, entries: [{name, status, eps, rating (0-5 stars), ...}]}; adds what isn't on the list yet.
+// Anime-Planet export (.json): {user, export, entries: [{name, status, eps, rating (0-5 stars), started, completed, times}]};
+// adds what isn't on the list yet. There's no type field, so movies come in as "S1 E1" (isMovie spots them once AniList answers).
 const AP_STATUS = { "watching": "started", "watched": "finished", "want to watch": "not started", "stalled": "on hold", "dropped": "dropped" };
 $("apFile").onchange = async ev => {
   const f = ev.target.files[0];
@@ -2735,26 +2760,28 @@ $("apFile").onchange = async ev => {
     const data = JSON.parse(await f.text());
     const rows = Array.isArray(data) ? data : data.entries;
     if (!Array.isArray(rows) || !rows.some(r => r && (r.name || r.title) && r.status)) return flash("That doesn't look like an Anime-Planet export", true);
-    const have = new Set(items.map(i => i.name.toLowerCase()));
+    const have = new Map(items.map(i => [i.name.toLowerCase(), i]));
     let added = 0, skipped = 0, wont = 0;
+    const events = [], replace = [], fresh = [];
     for (const r of rows) {
       const name = String(r.name || r.title || "").trim(), st = String(r.status || "").toLowerCase();
       if (st === "won't watch") { wont++; continue; }   // nothing on this list matches "won't watch"
-      if (!name || have.has(name.toLowerCase())) { skipped++; continue; }
-      have.add(name.toLowerCase());
+      if (!name) continue;
       const status = AP_STATUS[st] || "not started";
       const movie = /movie/i.test(String(r.type || ""));
       const seen = Math.max(0, parseInt(r.eps) || 0);
       const e = status === "finished" ? Math.max(seen, 1) : seen;   // an episode must be picked, or the show would count as Not started
       const stars = Math.round((+r.rating || 0) * 2);   // Anime-Planet scores in half-stars out of 5
-      items.push({ name, progress: movie ? "Movie" : e ? fmt({ s: 1, e }) : "", status, notes: "", cover: "", links: "",
-        rating: stars >= 1 && stars <= 10 ? String(stars) : "", pinned: false, rec: false, with: "" });
+      const progress = movie ? "Movie" : e ? fmt({ s: 1, e }) : "", old = have.get(name.toLowerCase());
+      events.push(...datedEvents(old ? old.name : name, progress, exportTime(r.started), exportTime(r.completed)));
+      if (old) { replace.push(old.name); skipped++; continue; }
+      const it = { name, progress, status, notes: "", cover: "", links: "", rating: stars >= 1 && stars <= 10 ? String(stars) : "", pinned: false, rec: false, with: "" };
+      items.push(it); have.set(name.toLowerCase(), it); fresh.push(name);
       added++;
     }
-    if (!added) return flash(`Nothing new: all ${skipped} shows are already on your list`);
-    tab = "all"; localStorage.setItem("tab2", tab);
-    render(); save();
-    flash(`Added ${added} shows from Anime-Planet${skipped ? ` (${skipped} already on your list)` : ""}${wont ? `, ${wont} "won't watch" left out` : ""}. Covers fill in as you scroll.`);
+    if (added) { tab = "all"; localStorage.setItem("tab2", tab); render(); await save(fresh); }
+    await importDates(events, replace);
+    flash(importNote("Anime-Planet", added, skipped, new Set(events.map(e => e.name)).size, wont ? `, ${wont} "won't watch" left out` : ""));
   } catch { flash("Couldn't read that file", true); }
 };
 $("restoreFile").onchange = async ev => {

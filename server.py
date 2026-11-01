@@ -237,7 +237,7 @@ FORMAT_WORDS = re.compile(r"\b(?:the\s+)?(?:ova|oav|oad|ona|specials?|recap|movi
 # ---- Matching a list name to the right AniList entry. The name on the list is never changed; only the match behind it.
 CAND_FIELDS = "id format seasonYear startDate{year} title{romaji english native} synonyms coverImage{large}"
 CAND_QUERY = "query($s:String){Page(perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){" + CAND_FIELDS + "}}}"
-MATCH_V = 3   # bump when matching improves, so automatic matches are re-checked once
+MATCH_V = 4   # bump when matching improves, so automatic matches are re-checked once
 MINOR_FORMATS = ("SPECIAL", "OVA", "MUSIC", "TV_SHORT")
 MINOR_WORDS = re.compile(r"\b(ova|oad|specials?|recap|shorts?|chibi|pilot|mini|music|pv|omake|picture drama)\b", re.I)
 MOVIE_WORDS = re.compile(r"\b(movie|film|gekijouban)\b", re.I)
@@ -879,11 +879,41 @@ HISTORY_DB = os.path.join(ROOT, "data", "history.json")
 history_lock = threading.Lock()
 
 
-def log_history(old, new):
+def import_history(events, replace):
+    """Watch dates from an Anime-Planet or MyAnimeList export. For the `replace` names, the entries made when they were
+    first added (which older imports logged as watched that day) give way to the export's real dates."""
+    now, keep = time.time() + 86400, set(replace)
+    clean = []
+    for e in events[:50000]:
+        t = int(e.get("t", 0))
+        if not 631152000 <= t <= now or e.get("status") not in STATUS_LABELS:   # 1990 to today
+            continue
+        clean.append({"t": t, "name": str(e.get("name", ""))[:300], "from": str(e.get("from", ""))[:20], "to": str(e.get("to", ""))[:20],
+                      "was": e.get("was") if e.get("was") in STATUS_LABELS else "", "status": e["status"]})
+    with history_lock:
+        try:
+            with open(HISTORY_DB, encoding="utf-8") as f:
+                log = json.load(f)
+        except (FileNotFoundError, ValueError):
+            log = []
+        log = [e for e in log if not (e["name"] in keep and not e.get("from") and not e.get("was"))]
+        seen = {(e["t"], e["name"], e["to"], e["status"]) for e in log}
+        log += [e for e in clean if (e["t"], e["name"], e["to"], e["status"]) not in seen]
+        log.sort(key=lambda e: e["t"])
+        with open(HISTORY_DB, "w", encoding="utf-8") as f:
+            json.dump(log[-30000:], f)
+    return len(clean)
+
+
+def log_history(old, new, quiet=()):
+    """Note what moved since the last save. `quiet` names were just imported: what they say was watched happened
+    before today, so it isn't logged as today (an import's own dates come in through import_history)."""
     before = {i["name"]: i for i in old}
     now = int(time.time())
     events = []
     for it in new:
+        if it["name"] in quiet:
+            continue
         o = before.get(it["name"])
         if o and o["progress"] == it["progress"] and o["status"] == it["status"]:
             continue
@@ -1291,12 +1321,21 @@ def needs_match(ent):
     return cover_retry(ent) if not ent.get("file") else ent.get("v") != MATCH_V
 
 
-def replaces_old(name, old, new, cands):
-    """An older automatic match is only swapped when it was clearly a side entry (special, OVA, short) and the name doesn't ask for one."""
+def replaces_old(name, old, new, cands, kind=None):
+    """An older automatic match is only swapped when it was clearly a side entry (special, OVA, short) and the name doesn't
+    ask for one, or when today's matching rates the new pick higher on both title and overall fit (Frieren's chibi shorts
+    are filed as an ONA, so the side-entry rule alone kept that old pick)."""
+    was = next((c for c in cands if c["id"] == old.get("id")), None)
+    if not was:
+        return False   # the old pick isn't among today's results: nothing to compare it with
+    base, year = split_year(name)
+    rank = {c["id"]: r for r, c in enumerate(cands)}
+    (s_new, sim_new), (s_old, sim_old) = (score_candidate(base, year, kind, x, rank[x["id"]]) for x in (new, was))
+    if s_new > s_old and sim_new >= sim_old:
+        return True
     if MINOR_WORDS.search(name) or MOVIE_WORDS.search(name):
         return False
-    was = next((c for c in cands if c["id"] == old.get("id")), None)
-    return bool(was) and was.get("format") in MINOR_FORMATS and new.get("format") in ("TV", "MOVIE", "ONA")
+    return was.get("format") in MINOR_FORMATS and new.get("format") in ("TV", "MOVIE", "ONA")
 
 
 def resolve_matches(names, kinds, covers):
@@ -1320,7 +1359,7 @@ def resolve_matches(names, kinds, covers):
             else:
                 c, sim = pick_candidate(name, kinds.get(name), cands)
                 new = cover_entry(c, sim)
-                if old and old.get("file") and old.get("id") != c["id"] and not replaces_old(name, old, c, cands):
+                if old and old.get("file") and old.get("id") != c["id"] and not replaces_old(name, old, c, cands, kinds.get(name)):
                     was = next((x for x in cands if x["id"] == old.get("id")), None)
                     new = dict(old, v=MATCH_V)   # keep what was there; just note what it is
                     if was:
@@ -1710,6 +1749,13 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self.send(400, {"error": str(e)})
             return self.send(200, {"ok": True})
+        if self.path == "/api/history/import":   # watch dates from an import: {events: [...], replace: [names]}
+            try:
+                req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+                n = import_history(req.get("events") or [], req.get("replace") or [])
+            except Exception as e:
+                return self.send(400, {"error": str(e)})
+            return self.send(200, {"ok": True, "count": n})
         if self.path == "/api/match/ok":   # "Looks right" in Check matches
             try:
                 name = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))["name"]
@@ -1823,7 +1869,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != "/api/items":
             return self.send(404, {"error": "not found"})
         try:
-            items = json.loads(self.rfile.read(n))
+            body = json.loads(self.rfile.read(n))
+            items, imported = (body["items"], set(body.get("imported") or [])) if isinstance(body, dict) else (body, set())
             items = [{
                 "name": str(i["name"]).strip(),
                 "progress": str(i.get("progress", "")).strip(),
@@ -1844,7 +1891,7 @@ class Handler(BaseHTTPRequestHandler):
             relay_state["wake"].set()
             resolve_state["wake"].set()
             try:
-                log_history(old, items)
+                log_history(old, items, imported)
             except Exception:
                 pass   # the log is a bonus; never let it break saving
         except Exception as e:

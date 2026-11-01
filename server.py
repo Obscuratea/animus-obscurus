@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Local anime list: serves index.html and keeps the Excel sheet in sync. Stdlib only."""
-import difflib, hashlib, io, json, mimetypes, os, re, secrets, shutil, sys, tempfile, threading, time, unicodedata, urllib.error, urllib.request, webbrowser, zipfile
+import difflib, functools, hashlib, io, json, mimetypes, os, re, secrets, shutil, sys, tempfile, threading, time, unicodedata, urllib.error, urllib.request, webbrowser, zipfile
 from urllib.parse import parse_qs, unquote, urlparse
 import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -287,10 +287,16 @@ SERIES_GENERIC = {"the", "and", "season", "seasons", "part", "cour", "stage", "f
 def same_series(a, b):
     """Whether two AniList titles name the same series. A prequel link can cross into another one
     (MF Ghost's prequel is Initial D Final Stage); those are kept apart."""
+    names = lambda d: tuple(sorted({n for n in (norm_title(t) for t in d.values() if t) if n}))
+    return _same_series(names(a), names(b))
+
+
+@functools.lru_cache(maxsize=50000)
+def _same_series(xs, ys):
     first = lambda t: next((w for w in t.split() if w not in ("the", "a", "an")), t)
     words = lambda t: [w for w in t.split() if len(w) >= 3 and w not in SERIES_GENERIC]
-    for x in {norm_title(t) for t in a.values() if t}:
-        for y in {norm_title(t) for t in b.values() if t}:
+    for x in xs:
+        for y in ys:
             if first(x) == first(y) or difflib.SequenceMatcher(None, x, y).ratio() >= .6:
                 return True
             if any(u in v or v in u for u in words(x) for v in words(y)):   # 'monogatari' in 'nisemonogatari'
@@ -298,11 +304,14 @@ def same_series(a, b):
     return False
 
 
+SAID = {"OVA": re.compile(r"\b(ova|oad|oav)\b", re.I), "SPECIAL": re.compile(r"\bspecials?\b", re.I), "MUSIC": re.compile(r"\b(music|pv)\b", re.I)}
+SAID_ANY = re.compile("|".join(p.pattern for p in SAID.values()), re.I)   # a name that asks for an OVA, special or music video
+
+
 def score_candidate(base, year, kind, cand, rank):
     """How well one AniList result fits a name: title likeness, then format, season number, year and AniList's own order."""
-    said = {"OVA": r"\b(ova|oad|oav)\b", "SPECIAL": r"\bspecials?\b", "MUSIC": r"\b(music|pv)\b"}
-    n = norm_title(re.sub("|".join(said.values()), " ", base, flags=re.I)) or norm_title(base)   # "Toradora! OVA" is compared as "Toradora!"
-    titles =[t for t in [cand["title"].get(k) for k in ("english", "romaji", "native")] + (cand.get("synonyms") or []) if t]
+    n = norm_title(SAID_ANY.sub(" ", base)) or norm_title(base)   # "Toradora! OVA" is compared as "Toradora!"
+    titles = [t for t in [cand["title"].get(k) for k in ("english", "romaji", "native")] + (cand.get("synonyms") or []) if t]
     sim, best = max(((title_likeness(n, norm_title(t)), t) for t in titles), default=(0, ""))
     s = sim - .03 * rank
     fmt = cand.get("format")
@@ -312,8 +321,8 @@ def score_candidate(base, year, kind, cand, rank):
         s += .12 if fmt == "MOVIE" else 0
     elif MINOR_WORDS.search(base):
         s += .05 if fmt in MINOR_FORMATS else 0
-        if any(re.search(p, base, re.I) for p in said.values()):
-            s += .1 if fmt in said and re.search(said[fmt], base, re.I) else 0 if fmt in MINOR_FORMATS else -.08   # the OVA over the special or the series
+        if SAID_ANY.search(base):
+            s += .1 if fmt in SAID and SAID[fmt].search(base) else 0 if fmt in MINOR_FORMATS else -.08   # the OVA over the special or the series
     else:
         s += FORMAT_PRIOR.get(fmt, 0)   # a plain name means the show itself, not its specials or shorts
     nn, tn = season_numbers(base), season_numbers(best)
@@ -385,7 +394,7 @@ def cover_for(name):
     with cover_lock:
         db = load_covers()
         ent = db.get(name)
-        if ent is None or cover_retry(ent):
+        if ent is None:   # "not found" entries are retried by the resolver, many per AniList call
             try:
                 ent = fetch_cover(name)
             except Exception as e:

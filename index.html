@@ -1080,7 +1080,7 @@ function render() {
   renderActions();
   renderContinue();
   const keys = groupKeys(), members = new Map();
-  for (const i of items) { const k = keys.get(i.name); members.set(k, [...(members.get(k) || []), i]); }
+  for (const i of items) { const k = keys.get(i.name); if (!members.has(k)) members.set(k, []); members.get(k).push(i); }
   const seen = new Set(), cards = [];
   for (const it of shown) {
     const k = keys.get(it.name);
@@ -1090,7 +1090,7 @@ function render() {
     cards.push(k === expanded ? bigCard(it, all, k) : row(it, all.filter(x => x !== it), k));
   }
   if (expanded && !seen.has(expanded)) expanded = null;
-  const keep = document.querySelector("#list .bigbody")?.scrollTop;
+  const was = document.querySelector("#list > li.opened"), keep = was?.dataset.key === expanded ? was.querySelector(".bigbody")?.scrollTop : 0;   // same card: stay put
   if (!shown.length) $("list").replaceChildren(el("div", { className: "empty", textContent: tab === "recs" ? "Nothing recommended yet. Use the thumbs-up on a card." : tab === "upcoming" ? "No unreleased shows on your list. Shows that haven't premiered yet land here." : "Nothing here." }));
   else $("list").replaceChildren(...cards);
   const bb = document.querySelector("#list .bigbody");
@@ -2380,7 +2380,7 @@ async function showChangelog() {
 
 // ---- Keyboard shortcuts (ignored while typing, or while a menu / window is open).
 const VIEW_KEYS = ["list", "calendar", "discover", "manga", "stats", "friends"];
-const SHORTCUTS = [["/", "Search"], ["A", "Add an anime"], ["1 – 6", "My list, Calendar, Discover, Manga, Stats, Friends"], ["[  ]", "Previous / next tab"], ["?", "Show this help"]];
+const SHORTCUTS = [["/", "Search"], ["A", "Add an anime"], ["1 – 6", "My list, Calendar, Discover, Manga, Stats, Friends"], ["[  ]", "Previous / next tab"], ["Esc", "Close an opened card"], ["?", "Show this help"]];
 function showShortcuts() {
   const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
   const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey, true); };

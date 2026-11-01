@@ -11,9 +11,9 @@ A personal anime tracker that runs on your own computer. No account, no cloud: y
 
 ## Latest release features
 
-![Animus Obscurus v1.4.0: share picks with a code, a Friends page, compare with friends](docs/latest-release.png)
+![Animus Obscurus v1.5.0: one card per show, cards that fill your screen, smarter imports](docs/latest-release.png)
 
-**[Get v1.4.0](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
+**[Get v1.5.0](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
 
 ## Run it
 

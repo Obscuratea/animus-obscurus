@@ -1,5 +1,24 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.5.0
+**New**
+- **One card per show.** A show's seasons, movies, OVAs, specials and spin-offs on your list now share one card (a chip like "+2 · Movie, OVA" shows what's inside). Nothing on your list is merged or renamed: each entry keeps its own status and progress.
+- **Open a card** by clicking it: it grows to fill the window, with tabs for **Seasons**, **Movies**, **OVAs** and **Specials**. Seasons are marked Watched, Watching or Not yet, with "Jump to this season". Each movie or OVA has its own status and ✓. Press **Esc** or ✕ to close it.
+- **The page fills your window**, and the cards follow its width: more side by side on a big screen, stacked on a small one.
+- **Card size** (gear → Look): **Wide** (the new default) or **Full width**, one long strip per show with its synopsis. The old small vertical cards are gone.
+- **Flipping** works at every size: a full-width card's back uses both halves, and an opened card flips to the notes, rating and match of every entry in the show.
+- **Watch dates from imports.** Importing from Anime-Planet or MyAnimeList now puts your real started and finished dates into **Stats**, so your past years fill in. Imports used to count every show as watched on the day you imported; **import the same file again** to fix that (nothing is added twice).
+- On a card set to a later season, the title shows that season's name (for example "Initial D 2nd Stage" instead of "1st Stage").
+
+**Fixes**
+- Seasons no longer jump into a different series (MF Ghost showed Initial D's cover and seasons), and a movie or OVA between two seasons no longer cuts the season list short (Initial D now has all five stages; JoJo gains Stone Ocean).
+- Names with "OVA", "Specials" or "Movie" in them are found (AniList's search returned nothing for "My Little Monster OVA"), and "Toradora! OVA" finds the OVA rather than a special. When AniList has no separate entry, the show is matched to the main series and listed in Check matches.
+- Older wrong matches are corrected when the new matching is clearly better (Frieren matched to its chibi shorts).
+- Movies imported from Anime-Planet show as movies.
+- Check matches no longer lists shows whose name exactly matches an OVA or short on AniList.
+- Covers that weren't found load without holding up the rest of the page while they are looked up again.
+- The "Movie" label is centred, and the cards' background blur is lighter.
+
 ## 1.4.2
 **New**
 - **Upcoming tab.** Shows on your list that haven't premiered yet get their own tab (next to Not started), with the premiere date on the card.

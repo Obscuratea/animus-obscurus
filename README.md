@@ -5,15 +5,15 @@ A personal anime tracker that runs on your own computer. No account, no cloud: y
 - **Track episodes on any streaming site.** Paste one episode link per season and the ▶ button opens the next episode.
 - **Airing tab, covers, ratings and genres** from AniList (cached on disk, so MyAnimeList's Jikan API is barely touched).
 - **Discover** what's airing this season (or any past or upcoming one) and add it to your list in one click.
-- **Share recommendations with friends** as a small file, no server needed.
+- **Share recommendations with friends** with a short code (no accounts, nothing but your 👍 picks is shared), or as a small file. Compare lists with a friend.
 - **Import your MyAnimeList** export file.
 - **Themes from any show's cover**, backups, and **one-click updates** from GitHub Releases.
 
 ## Latest release features
 
-![Animus Obscurus v1.3.1: one-click updates, Discover, MyAnimeList import](docs/latest-release.png)
+![Animus Obscurus v1.4.0: share picks with a code, a Friends page, compare with friends](docs/latest-release.png)
 
-**[Get v1.3.1](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
+**[Get v1.4.0](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
 
 ## Run it
 

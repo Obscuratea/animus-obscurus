@@ -1,5 +1,18 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.4.0
+**New**
+- **Share your picks with a code.** Open **Friends**, tap **Share my picks** and send the code to a friend. They paste it under **Add friend**, and your 👍 picks stay up to date on their side with nothing to export again. Only your recommendations are shared, you can get a new code or stop sharing any time, and files still work too.
+- **A Friends page** (the gold button, top right) now holds everything social: a "Your friends" card with a switch to show or hide each friend's picks, add and remove friends, and **Picks from friends**.
+- **Compare** with a friend: what you both recommend, what they recommend that is already on your list, what they recommend that isn't, and what only you recommend.
+- **Manga** has a place in the top bar, with a "Coming soon" page for now.
+- Icons on the buttons that benefit from them (share, add, copy, remove, change cover, arrows and more), and in the settings panel.
+- The title count at the top is gone: "All" at the bottom already shows it.
+
+**Fixes**
+- The episode picker no longer lists episodes that haven't aired. A season whose later part hasn't started used to count that part's planned episodes (a show with 5 out could offer 17).
+- The Friends tab moved out of the bottom row into the new Friends page.
+
 ## 1.3.5
 **New**
 - **Special looks** (gear, "Special look"): Paper / Manga, Neon Tokyo and Retro 90s anime. You can also tint a look with the show you picked in "Theme from a show".

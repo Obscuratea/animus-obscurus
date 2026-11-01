@@ -1,0 +1,9 @@
+name = "animus-relay"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Create the store once with:  npx wrangler kv namespace create RECS
+# then paste the id it prints below.
+[[kv_namespaces]]
+binding = "RECS"
+id = "7cb85e129ccc462eb128c691af4b65a0"

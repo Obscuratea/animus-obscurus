@@ -7,3 +7,4 @@ dist/
 assets/
 Scripts for Claude/
 CHANGELOG-discord.txt
+.wrangler/

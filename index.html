@@ -258,7 +258,7 @@ body.gallery #themeArt { opacity: 0; }
 .seg button:hover { background: var(--raised); }
 .seg button[aria-selected=true] { background: none; color: var(--on-accent); }
 body:not([data-view=list]) .bar, body:not([data-view=list]) .tabs-row, body:not([data-view=list]) .tabactions, body:not([data-view=list]) .shelf,
-body:not([data-view=list]) #list, body:not([data-view=list]) #count, body:not([data-view=list]) .controw { display: none; }
+body:not([data-view=list]) #list, body:not([data-view=list]) .controw { display: none; }
 .controw { margin-bottom: 12px; } .controw[hidden] { display: none; }
 .controw h3 { margin: 0 0 6px; font: 600 13px var(--sans); color: var(--dim); }
 .controw .strip { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; }
@@ -268,8 +268,41 @@ body:not([data-view=list]) #list, body:not([data-view=list]) #count, body:not([d
 .controw a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
 .controw b { display: block; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .controw span { color: var(--dim); }
-#discover, #calendar, #stats { display: none; }
-body[data-view=discover] #discover, body[data-view=calendar] #calendar, body[data-view=stats] #stats { display: block; }
+#discover, #calendar, #stats, #manga, #friends { display: none; }
+body[data-view=discover] #discover, body[data-view=calendar] #calendar, body[data-view=stats] #stats, body[data-view=manga] #manga, body[data-view=friends] #friends { display: block; }
+body[data-view=manga] form.add { display: none; }
+.soon { text-align: center; padding: 70px 20px; }
+.soon-art { font: 800 88px/1 var(--sans); background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.soon h2 { margin: 10px 0 2px; font: 700 34px var(--sans); }
+.soon p { margin: 4px 0; font-size: 18px; } .soon p.dim { font-size: 14px; color: var(--dim); }
+/* Friends: gold ring so it stands apart from the view switch */
+.i { width: 1.2em; height: 1.2em; fill: currentColor; flex: none; }
+button.has-i { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+button.has-i.only { padding: 9px; aspect-ratio: 1; }
+button.has-i.danger:hover { background: color-mix(in srgb, var(--danger) 25%, var(--raised)); color: var(--danger); }
+.fman { background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 24px; padding: 16px 20px 8px; margin: 0 0 18px; }
+.fman-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.fman-head h3 { margin: 0 auto 0 0; font: 700 18px var(--sans); }
+.fman-head button.add { width: auto; padding: 9px 18px; font-size: 14px; }
+.frow { display: flex; align-items: center; gap: 14px; padding: 10px 2px; border-top: 1px solid color-mix(in srgb, var(--dim) 20%, transparent); transition: opacity .15s; }
+.frow.off { opacity: .45; }
+.frow .av { width: 38px; height: 38px; border-radius: 50%; background: var(--grad); color: var(--on-accent); display: grid; place-items: center; font: 700 16px var(--sans); flex: none; }
+.frow .who { flex: 1; min-width: 0; }
+.frow .who b { display: block; font-size: 15px; font-weight: 600; }
+.frow .who small { color: var(--dim); font-size: 12.5px; }
+.frow .live { color: var(--accent); }
+.fnone { padding: 14px 2px 18px; color: var(--dim); font-size: 14px; border-top: 1px solid color-mix(in srgb, var(--dim) 20%, transparent); }
+.sw { width: 44px; height: 26px; padding: 0; border-radius: 999px; position: relative; flex: none; background: color-mix(in srgb, var(--dim) 30%, transparent); }
+.sw::after { content: ""; position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; border-radius: 50%; background: var(--dim); transition: transform .2s, background .2s; }
+.sw[aria-checked=true] { background: var(--fill-tone); }
+.sw[aria-checked=true]::after { transform: translateX(18px); background: var(--accent); }
+.friends-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; font: 700 14px var(--sans); color: color-mix(in srgb, #f2c14e 62%, var(--ink)); background: color-mix(in srgb, #f2c14e 12%, transparent); box-shadow: 0 0 0 2px #f2c14e, 0 0 16px #f2c14e44; transition: background .15s, box-shadow .15s, color .15s; }
+.friends-btn:hover { background: color-mix(in srgb, #f2c14e 22%, transparent); box-shadow: 0 0 0 2px #f2c14e, 0 0 22px #f2c14e77; }
+.friends-btn[aria-pressed=true], .friends-btn[aria-pressed=true]:hover { background: linear-gradient(135deg, #f7d77a, #e0a82e); color: #3a2a00; box-shadow: 0 0 0 2px #f2c14e, 0 0 22px #f2c14e66; }
+#friends .tabs { display: inline-flex; margin: 0 0 14px; }
+#friends .cmphead { margin: 22px 0 10px; font: 700 18px var(--sans); }
+#friends .cmphead span { color: var(--dim); font-weight: 500; font-size: 14px; margin-left: 6px; }
+#friends .fsearch { flex: 1 1 220px; max-width: 320px; }
 /* a pill that slides to the active tab with a little jelly bounce (see slideTabs) */
 .seg, .tabs { position: relative; }
 .thumb { position: absolute; left: 0; top: 0; border-radius: 999px; background: var(--grad); pointer-events: none; z-index: 0; transform-origin: center; transition: background .3s, opacity .2s; }
@@ -308,6 +341,7 @@ body.gallery #gear { opacity: 0; pointer-events: none; }
 .gearpanel h4:first-child { margin-top: 6px; }
 .gearpanel button.it { display: flex; gap: 12px; align-items: center; width: 100%; padding: 8px 10px; border-radius: 16px; background: none; text-align: left; cursor: pointer; }
 .gearpanel button.it:hover, .gearpanel button.it:focus-visible { background: var(--raised); }
+.gearpanel .ic .i { width: 20px; height: 20px; }
 .gearpanel .ic { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--tone); color: var(--on-tone); font-size: 17px; }
 .gearpanel .it b { display: block; font-weight: 600; font-size: 14px; }
 .gearpanel .it small { color: var(--dim); font-size: 12.5px; line-height: 1.25; display: block; }
@@ -322,6 +356,7 @@ body.gallery #gear { opacity: 0; pointer-events: none; }
 .dhead h2 { margin: 0; font: 700 34px var(--sans); letter-spacing: -.01em; }
 .dhead h2 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .dhead .arrow { width: 38px; height: 38px; padding: 0; border-radius: 50%; font-size: 18px; }
+.dhead .arrow .i { width: 22px; height: 22px; }
 .dhead .arrow:disabled { opacity: .35; cursor: default; }
 .dhead .sub { color: var(--dim); font-size: 14px; }
 .dhead .when { padding: 3px 12px; border-radius: 999px; background: var(--mat-tertiary-container); color: var(--mat-on-tertiary-container); font: 600 12px var(--sans); }
@@ -536,12 +571,12 @@ html[data-look=retro] .tabs .thumb { box-shadow: 0 0 0 3px #1d1b3a; }
 <path d="M4.5 38.5 C11 22 21 17 32 17 C43 17 52 21.5 59.5 30.5 L61 27.5 C60.2 33 58.5 36 57 37 C51 28 43 24.5 32 24.5 C21 24.5 12 29 4.5 38.5 Z" fill="#0d0720"/>
 <path class="spark" d="M51 8 L52.7 13.3 L58 15 L52.7 16.7 L51 22 L49.3 16.7 L44 15 L49.3 13.3 Z" fill="#fff"/><circle cx="13" cy="14" r="1.6" fill="#fff" fill-opacity=".8"/></svg><span class="wordmark" role="img" aria-label="Animus Obscurus">Animus</span></h1>
     <div class="seg" id="viewSwitch" role="tablist" aria-label="View">
-      <button data-v="list" role="tab">My list</button><button data-v="calendar" role="tab">Calendar</button><button data-v="discover" role="tab">Discover</button><button data-v="stats" role="tab">Stats</button>
+      <button data-v="list" role="tab">My list</button><button data-v="calendar" role="tab">Calendar</button><button data-v="discover" role="tab">Discover</button><button data-v="manga" role="tab">Manga</button><button data-v="stats" role="tab">Stats</button>
     </div>
-    <span class="count" id="count"></span>
+    <button class="friends-btn" id="friendsBtn" data-v="friends" aria-pressed="false" title="Friends: shared picks, share code, compare"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 19c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8z"/><circle cx="17.2" cy="9" r="2.6" opacity=".75"/><path d="M16.6 13.4c3 .1 4.9 1.9 4.9 4.9h-4.1c0-1.8-.5-3.5-.8-4.9z" opacity=".75"/></svg>Friends</button>
     <form class="add" id="addForm">
       <input id="addName" placeholder="Add an anime…" autocomplete="off" required>
-      <button>Add</button>
+      <button id="addBtn">Add</button>
       <div class="suggest" id="suggest" role="listbox" hidden></div>
     </form>
   </header>
@@ -551,7 +586,7 @@ html[data-look=retro] .tabs .thumb { box-shadow: 0 0 0 3px #1d1b3a; }
     <span class="slot" id="fYear"></span>
     <span class="slot" id="fRating"></span>
     <span class="slot" id="fWith"></span>
-    <button class="tagbtn" id="tagBtn" aria-expanded="false">Tags ▾</button>
+    <button class="tagbtn has-i" id="tagBtn" aria-expanded="false">Tags ▾</button>
     <button class="clear" id="clearBtn" hidden>Clear</button>
   </div>
   <div class="shelf" id="shelf" hidden></div>
@@ -561,6 +596,8 @@ html[data-look=retro] .tabs .thumb { box-shadow: 0 0 0 3px #1d1b3a; }
   <ul id="list"></ul>
   <section id="discover" aria-label="Discover"></section>
   <section id="calendar" aria-label="Calendar"></section>
+  <section id="manga" aria-label="Manga"><div class="soon"><div class="soon-art" aria-hidden="true">漫</div><h2>Manga</h2><p>Coming soon</p><p class="dim">A place for your manga, kept just like your anime list.</p></div></section>
+  <section id="friends" aria-label="Friends"></section>
   <section id="stats" aria-label="Stats"></section>
 </main>
 <button class="head" id="headBtn" hidden><span><img alt=""></span></button>
@@ -600,7 +637,7 @@ function toTemplate(url, ep) {
 }
 const searchUrl = name => siteSearch.split("{q}").join(encodeURIComponent(name));
 const STATUSES = [["not started", "Not started"], ["started", "Started"], ["on hold", "On hold"], ["finished", "Finished"], ["dropped", "Dropped"]];
-const TABS = [["started", "Started"], ["on hold", "On hold"], ["not started", "Not started"], ["finished", "Finished"], ["dropped", "Dropped"], ["recs", "Recommended"], ["friends", "Friends"], ["all", "All"], ["airing", "Airing"]];
+const TABS = [["started", "Started"], ["on hold", "On hold"], ["not started", "Not started"], ["finished", "Finished"], ["dropped", "Dropped"], ["recs", "Recommended"], ["all", "All"], ["airing", "Airing"]];
 let items = [], q = "";
 let tab = localStorage.getItem("tab2");
 if (!TABS.some(([k]) => k === tab)) tab = "started";
@@ -621,7 +658,9 @@ const SORT_FNS = {
 const infoOf = {};      // title -> {year, rating, ratingText, uncensored, tags}, false if unavailable
 const filt = { year: "", rating: "", with: "", tags: new Set() };
 const splitWith = it => (it.with || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
-let view = ["list", "calendar", "discover", "stats"].includes(localStorage.getItem("view")) ? localStorage.getItem("view") : "list";
+let view = ["list", "calendar", "discover", "manga", "stats", "friends"].includes(localStorage.getItem("view")) ? localStorage.getItem("view") : "list";
+let fHidden = new Set(JSON.parse(localStorage.getItem("fhidden") || "[]"));   // friends whose picks are switched off
+let fSub = localStorage.getItem("fsub") === "compare" ? "compare" : "picks", fWho = "", fQ = "";   // Friends view: sub-tab, who to compare with, search
 let friends = [], me = "", myIds = new Set();   // myIds: AniList ids of the shows on your list   // friends: [{from, items}] imported recommendations
 const RATING_ORDER = ["G", "PG", "PG-13", "R-17+", "R+", "Rx"];
 const UNC_RE = /unc\w*sored|unrated/i;   // "Uncesored" typos count
@@ -634,6 +673,50 @@ const parse = p => { const m = /^S(\d+)(?:\s*E(\d+))?$/i.exec(p); return m ? { s
 const fmt = ({ s, e }) => e ? `S${s} E${e}` : `S${s}`;
 const el = (tag, props = {}) => Object.assign(document.createElement(tag), props);
 const elc = (tag, props, ...kids) => { const n = el(tag, props); n.append(...kids); return n; };   // el with children
+
+// One small icon set (Material paths, 24px) so buttons look like one family. ico() makes the <svg>; ib() a button with an icon and/or text.
+const IC = {
+  share: "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z",
+  personAdd: "M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+  person: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+  refresh: "M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z",
+  file: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
+  trash: "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z",
+  copy: "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z",
+  close: "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
+  add: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
+  check: "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z",
+  image: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z",
+  left: "M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z",
+  right: "M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z",
+  more: "M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6z",
+  hide: "M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2z",
+  today: "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z",
+  tag: "M21.41 11.41l-8.83-8.83c-.37-.37-.88-.58-1.41-.58H4c-1.1 0-2 .9-2 2v7.17c0 .53.21 1.04.59 1.41l8.83 8.83c.78.78 2.05.78 2.83 0l7.17-7.17c.78-.78.78-2.04-.01-2.83zM6.5 8C5.67 8 5 7.33 5 6.5S5.67 5 6.5 5 8 5.67 8 6.5 7.33 8 6.5 8z",
+  download: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
+  upload: "M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z",
+  merge: "M17 20.41 18.41 19 15 15.59 13.59 17 17 20.41zM7.5 8H11v5.59L5.59 19 7 20.41l6-6V8h3.5L12 3.5 7.5 8z",
+  stop: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z",
+  palette: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
+  sparkle: "M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z",
+  grid: "M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z",
+  play: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z",
+  history: "M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z",
+  up: "M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z",
+};
+function ico(name) {
+  const NS = "http://www.w3.org/2000/svg", svg = document.createElementNS(NS, "svg"), path = document.createElementNS(NS, "path");
+  svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("class", "i"); svg.setAttribute("aria-hidden", "true");
+  path.setAttribute("d", IC[name]); svg.append(path);
+  return svg;
+}
+// A button with an icon and/or text. Icon-only buttons need a title: it becomes the tooltip and the screen-reader label.
+function ib(icon, text, props = {}) {
+  const b = el("button", { type: "button", ...props, className: `has-i${text ? "" : " only"} ${props.className || ""}`.trim() });
+  b.append(...(icon ? [ico(icon)] : []), ...(text ? [document.createTextNode(text)] : []));
+  if (!text && props.title) b.setAttribute("aria-label", props.title);
+  return b;
+}
 
 function flash(msg, err) {
   const box = $("status");
@@ -865,10 +948,13 @@ function render() {
   closeMenu();
   document.body.dataset.view = view;
   for (const b of $("viewSwitch").children) b.setAttribute("aria-selected", b.dataset.v === view);
+  $("friendsBtn").setAttribute("aria-pressed", view === "friends");
   slideTabs($("viewSwitch"), "vs");
   if (view === "discover") return renderDiscover();
   if (view === "calendar") return renderCalendar();
   if (view === "stats") return renderStats();
+  if (view === "friends") return renderFriends();
+  if (view === "manga") return;
   $("tabs").replaceChildren(...TABS.map(([k, label]) => {
     const b = el("button", { textContent: `${label} ${tabCount(k)}` });
     b.setAttribute("aria-pressed", k === tab);
@@ -882,18 +968,10 @@ function render() {
   const open = items;   // any title can be airing, so all of them need their season info
   const pinFirst = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
   const soonest = (a, b) => airing(a).at - airing(b).at;
-  const shown = tab === "friends" ? [] : tab === "airing" ? items.filter(i => isAiring(i) && ok(i)).sort((a, b) => pinFirst(a, b) || soonest(a, b))
+  const shown = tab === "airing" ? items.filter(i => isAiring(i) && ok(i)).sort((a, b) => pinFirst(a, b) || soonest(a, b))
     : items.filter(i => (tab === "all" || (tab === "recs" ? i.rec : i.status === tab)) && ok(i)).sort((a, b) => pinFirst(a, b) || SORT_FNS[sortBy](a, b));
   renderActions();
   renderContinue();
-  if (tab === "friends") {
-    const cards = friendGroups().filter(g => g.m.name.toLowerCase().includes(q)).map(friendCard);
-    $("count").textContent = `${cards.length} recommendations`;
-    $("list").replaceChildren(...(cards.length ? cards : [el("div", { className: "empty", textContent: friends.length ? "Nothing here." :
-      "No friend recommendations yet. Ask a friend to export theirs (Recommended tab), then add their file here." })]));
-    return prefetchInfo();
-  }
-  $("count").textContent = shown.length === items.length ? `${items.length} titles` : `${shown.length} of ${items.length} titles`;
   if (!shown.length) $("list").replaceChildren(el("div", { className: "empty", textContent: tab === "recs" ? "Nothing recommended yet. Use the thumbs-up on a card." : "Nothing here." }));
   else $("list").replaceChildren(...shown.map(row));
   prefetchSeasons([...shown, ...open]);
@@ -962,21 +1040,14 @@ function renderActions() {
   renderActions.base();
   const dups = duplicateGroups();
   if (dups.length) box.append(el("span", { className: "hint", textContent: "Some shows are listed more than once (they are seasons of the same show)." }),
-    el("button", { textContent: "Combine", onclick: () => mergeDuplicates(dups) }));
+    ib("merge", "Combine", { onclick: () => mergeDuplicates(dups) }));
 }
 renderActions.base = function () {
   const box = $("tabActions");
   if (tab === "recs") {
-    const b = el("button", { textContent: "Export my recommendations", onclick: exportRecs });
-    box.replaceChildren(b, el("span", { className: "hint", textContent: "Send the file to a friend; they add it under Friends." }));
-  } else if (tab === "friends") {
-    const kids = [el("button", { textContent: "Add a friend's file…", onclick: () => $("friendFile").click() })];
-    for (const f of friends) kids.push(el("button", { textContent: `${f.from} ✕`, className: "dd-free", title: `Remove ${f.from}'s list`, onclick: async () => {
-      if (!confirm(`Remove ${f.from}'s recommendations?`)) return;
-      await fetch("/api/friends/remove", { method: "POST", body: JSON.stringify({ from: f.from }) });
-      await loadFriends(); render();
-    } }));
-    box.replaceChildren(...kids);
+    box.replaceChildren(ib("share", "Share with friends", { onclick: shareCode }),
+      ib("download", "Save as a file", { onclick: exportRecs }),
+      el("span", { className: "hint", textContent: "Friends add your code under Friends and always see your latest picks." }));
   } else box.replaceChildren();
 };
 async function loadIds() {
@@ -988,7 +1059,7 @@ async function loadFriends() {
 // One card per show, however many friends recommended it.
 function friendGroups() {
   const groups = new Map();
-  for (const f of friends) for (const m of f.items) {
+  for (const f of friends) if (!fHidden.has(f.from)) for (const m of f.items) {
     const key = m.id ? `id${m.id}` : m.name.toLowerCase();
     if (!groups.has(key)) groups.set(key, { m, by: [] });
     const g = groups.get(key);
@@ -1011,8 +1082,8 @@ function friendCard({ m, by }) {
     box.append(chips);
   }
   const have = (m.id && myIds.has(m.id)) || items.some(i => i.name.toLowerCase() === m.name.toLowerCase());
-  const add = el("button", { className: "add", textContent: have ? "On your list" : "Add to my list", disabled: have });
-  add.onclick = async () => { await addTitle(m.name, m.id ? { id: m.id } : null, true); render(); };
+  const add = ib(have ? "check" : "add", have ? "On your list" : "Add to my list", { className: "add", disabled: have });
+  add.onclick = async () => { await addTitle(m.name, m.id ? { id: m.id } : null, true); view === "friends" ? renderFriends() : render(); };
   const who = by.map(b => b.rating ? `${b.who} (${b.rating}/10)` : b.who).join(", ");
   const body = el("div", { className: "body" });
   body.append(el("div", { className: "name", textContent: m.name }),
@@ -1020,6 +1091,158 @@ function friendCard({ m, by }) {
   li.append(box, body);
   return li;
 }
+// Live sharing: a code that friends paste in, so their picks stay up to date without sending files.
+let relay = null;
+async function loadRelay() { try { relay = await (await fetch("/api/relay")).json(); } catch { relay = null; } return relay; }
+async function relayPost(path, body) {
+  const r = await fetch("/api/relay/" + path, { method: "POST", body: JSON.stringify(body || {}) });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error);
+  return d;
+}
+async function shareCode() {
+  await loadRelay();
+  if (!relay?.ready) return flash("Live sharing isn't available in this version yet. Use “Save as a file” for now", true);
+  if (!relay.sharing) {
+    if (!me) {
+      const n = prompt("Your name, so friends can see who is sharing:", "");
+      if (!n || !n.trim()) return;
+      await setMe(n.trim());
+    }
+    if (!confirm("Turn on live sharing?\n\nYour 👍 recommendations (titles, your ratings, covers and your name) are sent to a small sharing service. Anyone you give your code to can read them, and they stay up to date. Nothing else from your list is shared. You can turn it off any time.")) return;
+    try { await relayPost("share", { on: true }); } catch (e) { return flash(e.message, true); }
+    await loadRelay();
+  }
+  showCode();
+}
+function showCode() {
+  const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
+  const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey, true); };
+  const onKey = ev => { if (ev.key === "Escape") { ev.stopImmediatePropagation(); close(); } };
+  document.addEventListener("keydown", onKey, true);
+  overlay.onmousedown = ev => { if (ev.target === overlay) close(); };
+  panel.style.width = "min(560px, 92vw)";
+  const box = el("input", { type: "text", readOnly: true, value: relay.code, style: "width:100%;font-size:16px;padding:12px 14px" });
+  box.onfocus = () => box.select();
+  const copy = ib("copy", "Copy code", { onclick: () => { navigator.clipboard?.writeText(relay.code).then(() => flash("Code copied"), () => { box.select(); flash("Press Ctrl+C to copy"); }); } });
+  const reset = ib("refresh", "Get a new code", { title: "The old code stops working", onclick: async () => {
+    if (!confirm("Get a new code? Friends using the old one will stop seeing your picks until you send them the new one.")) return;
+    try { await relayPost("share", { on: true, reset: true }); await loadRelay(); box.value = relay.code; flash("New code ready"); } catch (e) { flash(e.message, true); }
+  } });
+  const stop = ib("stop", "Stop sharing", { className: "danger", onclick: async () => {
+    if (!confirm("Stop sharing? Your picks are removed from the sharing service and the code stops working.")) return;
+    try { await relayPost("share", { on: false }); await loadRelay(); close(); flash("Sharing is off"); } catch (e) { flash(e.message, true); }
+  } });
+  panel.append(el("h2", { textContent: "Your share code" }),
+    el("p", { textContent: "Send this to a friend. They paste it under Friends → “Add a friend's code”, and your 👍 picks stay up to date on their side." }),
+    box, el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:14px" }, copy, reset, stop, el("button", { textContent: "Close", onclick: close })));
+  overlay.append(panel); document.body.append(overlay);
+  box.focus(); box.select();
+}
+async function addCode() {
+  const code = prompt("Paste your friend's share code (it starts with animus:):", "");
+  if (!code || !code.trim()) return;
+  flash("Fetching…");
+  try {
+    const d = await relayPost("follow", { code });
+    flash(`Added ${d.count} recommendations from ${d.from}`);
+    await loadFriends(); setView("friends");
+  } catch (e) { flash(e.message, true); }
+}
+async function syncNow() {
+  flash("Refreshing…");
+  try {
+    const d = await relayPost("sync");
+    await loadFriends(); render();
+    flash(d.problems.length ? d.problems[0] : d.updated ? `Updated ${d.updated} friend${d.updated > 1 ? "s" : ""}` : "No friends added by code yet", !!d.problems.length);
+  } catch (e) { flash(e.message, true); }
+}
+// ---- Friends: everything social lives here. Picks from friends, and a side-by-side with one friend.
+const idsOf = it => new Set((seasonsOf[it.name] || []).flatMap(x => x.parts.map(p => p.id)));
+const mineFor = m => items.find(i => i.name.toLowerCase() === m.name.toLowerCase() || (m.id && idsOf(i).has(m.id)));
+const rate = r => r ? `${r}/10` : "no score";
+function cmpCard(m, it, note) {
+  const li = el("li"), box = el("div", { className: "cover" }), img = el("img", { loading: "lazy", alt: "" });
+  img.src = m?.cover ? `/api/img?url=${encodeURIComponent(m.cover)}` : coverSrc(it);
+  img.onerror = () => img.remove();
+  const name = it?.name || m.name;
+  box.append(el("div", { className: "ph", textContent: name[0].toUpperCase() }), img);
+  const body = el("div", { className: "body" });
+  body.append(el("div", { className: "name", textContent: name }), el("div", { className: "meta", textContent: note }));
+  li.append(box, body);
+  return li;
+}
+const agoText = at => { const m = Math.floor((Date.now() / 1000 - at) / 60); return m < 2 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} d ago`; };
+function renderFriends() {
+  prefetchSeasons(items);
+  const root = $("friends"), keep = scrollY;
+  const head = el("div", { className: "dhead" }), h2 = el("h2");
+  h2.innerHTML = "<span>Friends</span>";
+  const shownN = friends.filter(f => !fHidden.has(f.from)).length;
+  head.append(h2, el("span", { className: "sub", textContent: friends.length ? `${friendGroups().length} shows picked by ${shownN} of ${friends.length} friend${friends.length > 1 ? "s" : ""}` : "" }));
+  const man = el("div", { className: "fman" });
+  man.append(elc("div", { className: "fman-head" }, el("h3", { textContent: "Your friends" }),
+    ib("share", "Share my picks", { className: "add", title: "Get a code your friends can add", onclick: shareCode }),
+    ib("personAdd", "Add friend", { title: "Paste a friend's share code", onclick: addCode }),
+    ib("refresh", "", { title: "Refresh: fetch your friends' latest picks now", onclick: syncNow }),
+    ib("file", "", { title: "Add a friend's file (for a friend who sent a file)", onclick: () => $("friendFile").click() })));
+  if (!friends.length) man.append(el("div", { className: "fnone", textContent: "No friends yet. Tap “Add friend” and paste the share code they sent you." }));
+  for (const f of friends) {
+    const on = !fHidden.has(f.from);
+    const sw = el("button", { type: "button", className: "sw", title: on ? `Showing ${f.from}'s picks. Tap to hide them` : `Hidden. Tap to show ${f.from}'s picks` });
+    sw.setAttribute("role", "switch"); sw.setAttribute("aria-checked", on); sw.setAttribute("aria-label", `Show ${f.from}'s picks`);
+    sw.onclick = () => { on ? fHidden.add(f.from) : fHidden.delete(f.from); localStorage.setItem("fhidden", JSON.stringify([...fHidden])); renderFriends(); };
+    const small = el("small");
+    small.append(...(f.live ? [el("span", { className: "live", textContent: "● Updates by itself" }), " · "] : ["From a file · "]), `${f.items.length} pick${f.items.length === 1 ? "" : "s"} · ${agoText(f.at)}`);
+    const rm = ib("trash", "", { className: "danger rm", title: `Remove ${f.from}`, onclick: async () => {
+      if (!confirm(`Remove ${f.from} and their recommendations?`)) return;
+      await fetch("/api/friends/remove", { method: "POST", body: JSON.stringify({ from: f.from }) });
+      fHidden.delete(f.from); await loadFriends(); renderFriends();
+    } });
+    man.append(elc("div", { className: "frow" + (on ? "" : " off") }, sw, el("div", { className: "av", textContent: f.from[0].toUpperCase() }),
+      elc("div", { className: "who" }, el("b", { textContent: f.from }), small), rm));
+  }
+  const subs = el("div", { className: "tabs" });
+  for (const [k, label] of [["picks", "Picks from friends"], ["compare", "Compare"]]) {
+    const b = el("button", { textContent: label, onclick: () => { fSub = k; localStorage.setItem("fsub", k); renderFriends(); } });
+    b.setAttribute("aria-pressed", k === fSub);
+    subs.append(b);
+  }
+  const kids = [head, man, subs];
+  if (fSub === "picks") {
+    const search = el("input", { type: "search", className: "fsearch", placeholder: "Search friends' picks…", value: fQ });
+    const grid = el("ul");
+    const fill = () => {
+      const cards = friendGroups().filter(g => g.m.name.toLowerCase().includes(fQ.toLowerCase())).map(friendCard);
+      grid.replaceChildren(...(cards.length ? cards : [el("div", { className: "empty", textContent: friends.length ? (fHidden.size === friends.length ? "All your friends are switched off above." : "Nothing here.") :
+        "No picks yet. Ask a friend for their share code (Recommended tab → Share with friends) and add it above." })]));
+    };
+    search.oninput = () => { fQ = search.value; fill(); };
+    fill();
+    kids.push(search, el("div", { style: "height:14px" }), grid);
+  } else {
+    if (!friends.length) kids.push(el("div", { className: "empty", textContent: "Add a friend first, then you can see what you have in common." }));
+    else {
+      if (!friends.some(f => f.from === fWho)) fWho = friends[0].from;
+      const pick = elc("div", { className: "dbar" }, el("span", { className: "sub", textContent: "Compare with" }));
+      for (const f of friends) pick.append(el("button", { textContent: f.from, className: f.from === fWho ? "on" : "", onclick: () => { fWho = f.from; renderFriends(); } }));
+      const F = friends.find(f => f.from === fWho), both = [], onList = [], notYet = [];
+      for (const m of F.items) { const it = mineFor(m); if (!it) notYet.push(m); else if (it.rec) both.push([m, it]); else onList.push([m, it]); }
+      const onlyMine = items.filter(i => i.rec && !both.some(([, it]) => it === i));
+      const sec = (title, cards) => cards.length && kids.push(elc("h3", { className: "cmphead", textContent: title }, el("span", { textContent: String(cards.length) })), elc("ul", {}, ...cards));
+      kids.push(pick);
+      kids.push(el("p", { className: "sub", textContent: `You and ${F.from} both recommend ${both.length} show${both.length === 1 ? "" : "s"}.` }));
+      sec("You both recommend", both.map(([m, it]) => cmpCard(m, it, `You ${rate(it.rating)} · ${F.from} ${rate(m.rating)}`)));
+      sec(`${F.from} recommends, already on your list`, onList.map(([m, it]) => cmpCard(m, it, `${it.status[0].toUpperCase() + it.status.slice(1)} · ${F.from} ${rate(m.rating)}`)));
+      sec(`${F.from} recommends, not on your list yet`, notYet.map(m => friendCard({ m, by: [{ who: F.from, rating: m.rating }] })));
+      sec(`You recommend, ${F.from} hasn't`, onlyMine.map(it => cmpCard(null, it, `You ${rate(it.rating)}`)));
+    }
+  }
+  root.replaceChildren(...kids);
+  slideTabs(subs, "ftabs", true);
+  scrollTo(0, keep);
+}
+
 async function exportRecs() {
   if (!items.some(i => i.rec)) return flash("Tap the thumbs-up on a few shows first", true);
   if (!me) {
@@ -1211,7 +1434,7 @@ function airing(it) {
 }
 const isAiring = it => !!airing(it);   // any show with an episode still to air, whatever its status
 const tabCount = k => k === "airing" ? items.filter(isAiring).length : k === "recs" ? items.filter(i => i.rec).length
-  : k === "friends" ? friendGroups().length : items.filter(i => k === "all" || i.status === k).length;
+  : items.filter(i => k === "all" || i.status === k).length;
 function untilText(at) {
   const m = Math.floor((at * 1000 - Date.now()) / 60000), h = Math.floor(m / 60);
   return m <= 0 ? "now" : h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h` : h ? `${h}h ${m % 60}m` : `${m}m`;
@@ -1270,7 +1493,7 @@ function renderFilters() {
     return label;
   }) : [el("span", { className: "meta", textContent: "Loading tags…" })]));
   $("shelf").scrollTop = keep;
-  $("tagBtn").textContent = `Tags${filt.tags.size ? ` (${filt.tags.size})` : ""} ${$("shelf").hidden ? "▾" : "▴"}`;
+  $("tagBtn").replaceChildren(ico("tag"), `Tags${filt.tags.size ? ` (${filt.tags.size})` : ""} ${$("shelf").hidden ? "▾" : "▴"}`);
   $("tagBtn").classList.toggle("on", filt.tags.size > 0);
   $("clearBtn").hidden = !(filt.year || filt.rating || filt.with || filt.tags.size);
 }
@@ -1435,7 +1658,10 @@ function backFace(it, li) {
     v => edit(it, i => i.rating = v)), withBox);
   const body = el("div", { className: "body" });
   const row = el("div", { className: "backbtns" });
-  row.append(btn("Change cover", "Change cover (all seasons)", () => changeCover(it), "wide"), remove);
+  const cc = btn("", "Change cover (all seasons)", () => changeCover(it), "wide has-i");
+  cc.append(ico("image"), document.createTextNode("Change cover"));
+  remove.classList.add("has-i"); remove.replaceChildren(ico("trash"), document.createTextNode("Remove"));
+  row.append(cc, remove);
   const syn = infoOf[it.name]?.desc;
   body.append(head, ...(syn ? [el("div", { className: "synopsis", textContent: syn })] : []), meta, notes, row);
   return [body];
@@ -1632,7 +1858,7 @@ async function loadUpdate(force) {
 }
 function updateGroup() {
   if (!upd) return [];
-  if (upd.available) return [["Update available", [["update", "⬆", `Update to v${upd.latest}`, "Downloads it and restarts Animus. Your list and settings are not touched"]]]];
+  if (upd.available) return [["Update available", [["update", "up", `Update to v${upd.latest}`, "Downloads it and restarts Animus. Your list and settings are not touched"]]]];
   return [];
 }
 function gearItems() {
@@ -1640,17 +1866,19 @@ function gearItems() {
   let host = ""; try { host = new URL(siteSearch).host; } catch {}
   return [
     ...updateGroup(),
-    ["Look", [["look", "✦", "Special look", look ? `Now: ${LOOKS[look].name}${lookPick ? " (with your picked show's colours)" : ""}` : "Paper / Manga, Neon Tokyo, Retro 90s: a whole new style"],
-      ["theme", "◐", "Theme from a show", theme ? `Now: ${theme}` : "Colours and background art taken from a cover you pick"],
-      ["layout", "▭", "Wide cards", wideCards ? "On. Bigger cards with more room and larger buttons" : "Off. The compact grid; turn on for roomier cards"]]],
-    ["Streaming", [["site", "▶", "Streaming site", host ? `Now: ${host}` : "The site your ▶ buttons and title links open (not set yet)"]]],
-    ["Friends", [["me", "☺", "Your name", me ? `Shown as “${me}” on your recommendations` : "Shown on the recommendations you share"],
-      ["export", "↑", "Share my recommendations", "Saves a file you can send to a friend"],
-      ["import", "↓", "Add a friend's recommendations", "Open a file a friend sent you"]]],
-    ["Your data", [["mal", "⇪", "Import from MyAnimeList", "Adds the shows from your MAL export file (your current list is kept)"],
-      ["backup", "⇩", "Back up my list", "Downloads everything as one file"],
-      ["restore", "⟲", "Restore from a backup", "Replaces your list with a backup file"]]],
-    ["Updates", [["check", "⟳", "Check for updates", upd?.error ? `Couldn't check: ${upd.error}` : `You have v${version}${upd?.checked ? ", checked " + new Date(upd.checked * 1000).toLocaleDateString() : ""}`],
+    ["Look", [["look", "sparkle", "Special look", look ? `Now: ${LOOKS[look].name}${lookPick ? " (with your picked show's colours)" : ""}` : "Paper / Manga, Neon Tokyo, Retro 90s: a whole new style"],
+      ["theme", "palette", "Theme from a show", theme ? `Now: ${theme}` : "Colours and background art taken from a cover you pick"],
+      ["layout", "grid", "Wide cards", wideCards ? "On. Bigger cards with more room and larger buttons" : "Off. The compact grid; turn on for roomier cards"]]],
+    ["Streaming", [["site", "play", "Streaming site", host ? `Now: ${host}` : "The site your ▶ buttons and title links open (not set yet)"]]],
+    ["Friends", [["me", "person", "Your name", me ? `Shown as “${me}” on your recommendations` : "Shown on the recommendations you share"],
+      ["share", "share", "Share with friends", relay?.sharing ? "On. Show my share code" : "Get a code friends can add; their lists and yours stay up to date"],
+      ["code", "personAdd", "Add a friend's code", "Paste the code a friend sent you"],
+      ["export", "download", "Save my recommendations as a file", "For friends who can't use a code"],
+      ["import", "file", "Add a friend's file", "Open a file a friend sent you"]]],
+    ["Your data", [["mal", "upload", "Import from MyAnimeList", "Adds the shows from your MAL export file (your current list is kept)"],
+      ["backup", "download", "Back up my list", "Downloads everything as one file"],
+      ["restore", "history", "Restore from a backup", "Replaces your list with a backup file"]]],
+    ["Updates", [["check", "refresh", "Check for updates", upd?.error ? `Couldn't check: ${upd.error}` : `You have v${version}${upd?.checked ? ", checked " + new Date(upd.checked * 1000).toLocaleDateString() : ""}`],
       ["auto", upd?.auto === false ? "○" : "●", "Check automatically", upd?.auto === false ? "Off. Animus never contacts GitHub on its own" : "On. Looks like a nice day for an update: checks once a day"]]],
   ];
 }
@@ -1659,6 +1887,8 @@ function gearAction(act) {
   else if (act === "theme") pickTheme();
   else if (act === "look") pickLook();
   else if (act === "me") { const n = prompt("Your name, shown to friends on your recommendations:", me); if (n !== null && n.trim()) setMe(n.trim()); }
+  else if (act === "share") shareCode();
+  else if (act === "code") addCode();
   else if (act === "export") exportRecs();
   else if (act === "import") $("friendFile").click();
   else if (act === "update") installUpdate();
@@ -1671,7 +1901,7 @@ function gearAction(act) {
 }
 gear.onclick = async () => {
   if (document.querySelector(".gearpanel")) return closeGear();
-  await loadUpdate();   // always show what the server says now
+  await Promise.all([loadUpdate(), loadRelay()]);   // always show what the server says now
   if (document.querySelector(".gearpanel")) return;
   closeMenu();
   const panel = el("div", { className: "gearpanel" });
@@ -1682,7 +1912,9 @@ gear.onclick = async () => {
       const b = el("button", { className: "it", type: "button" });
       const t = el("span");
       t.append(el("b", { textContent: name }), el("small", { textContent: hint }));
-      b.append(el("span", { className: "ic", textContent: icon }), t);
+      const g = el("span", { className: "ic" });
+      if (IC[icon]) g.append(ico(icon)); else g.textContent = icon;
+      b.append(g, t);
       b.onclick = () => { closeGear(); gearAction(act); };
       panel.append(b);
     }
@@ -1760,8 +1992,8 @@ async function showChangelog() {
 }
 
 // ---- Keyboard shortcuts (ignored while typing, or while a menu / window is open).
-const VIEW_KEYS = ["list", "calendar", "discover", "stats"];
-const SHORTCUTS = [["/", "Search"], ["A", "Add an anime"], ["1 2 3 4", "My list, Calendar, Discover, Stats"], ["[  ]", "Previous / next tab"], ["?", "Show this help"]];
+const VIEW_KEYS = ["list", "calendar", "discover", "manga", "stats", "friends"];
+const SHORTCUTS = [["/", "Search"], ["A", "Add an anime"], ["1 – 6", "My list, Calendar, Discover, Manga, Stats, Friends"], ["[  ]", "Previous / next tab"], ["?", "Show this help"]];
 function showShortcuts() {
   const overlay = el("div", { className: "modal" }), panel = el("div", { className: "panel" });
   const close = () => { overlay.remove(); document.removeEventListener("keydown", onKey, true); };
@@ -1784,7 +2016,7 @@ document.addEventListener("keydown", ev => {
     const box = view === "list" ? $("q") : document.querySelector(`#${view} input[type=search]`);
     if (box) { box.focus(); ev.preventDefault(); }
   } else if (k === "a" || k === "A") { $("addName").focus(); ev.preventDefault(); }
-  else if (k >= "1" && k <= "4") go(VIEW_KEYS[+k - 1]);
+  else if (k >= "1" && k <= "6") go(VIEW_KEYS[+k - 1]);
   else if ((k === "[" || k === "]") && view === "list") {
     const keys = TABS.map(([x]) => x), i = keys.indexOf(tab);
     tab = keys[(i + (k === "]" ? 1 : keys.length - 1)) % keys.length];
@@ -1848,8 +2080,8 @@ function discoverCard(sh) {
   const tags = el("div", { className: "tags" });
   tags.append(...sh.genres.slice(0, 4).map(g => el("span", { textContent: g })));
   const have = onMyList(sh);
-  const add = el("button", { className: "add", textContent: have ? "✓ On your list" : "+ Add to list", disabled: have });
-  add.onclick = async () => { add.disabled = true; add.textContent = "Adding…"; await addTitle(sh.title, { id: sh.id, format: sh.format }, true); renderDiscover(); };
+  const add = ib(have ? "check" : "add", have ? "On your list" : "Add to list", { className: "add", disabled: have });
+  add.onclick = async () => { add.disabled = true; add.replaceChildren("Adding…"); await addTitle(sh.title, { id: sh.id, format: sh.format }, true); renderDiscover(); };
   const go = el("div", { className: "go" });
   go.append(add, el("a", { className: "more", href: `https://anilist.co/anime/${sh.id}`, target: "_blank", rel: "noopener", textContent: "Details" }));
   const info = el("div", { className: "info" });
@@ -1864,7 +2096,7 @@ function fillGrid() {
   const all = dData[dKey(dIdx)], kids = [];
   if (!all) {
     kids.push(el("div", { className: "empty", textContent: dError || `Loading ${SEASON_NAMES[dIdx % 4]} ${Math.floor(dIdx / 4)}…` }));
-    if (dError) kids.push(el("button", { className: "dmore", textContent: "Try again", onclick: () => { dError = ""; renderDiscover(); } }));
+    if (dError) kids.push(ib("refresh", "Try again", { className: "dmore", onclick: () => { dError = ""; renderDiscover(); } }));
   } else {
     const list = dShows();
     if (!list.length) kids.push(el("div", { className: "empty", textContent: "No shows match." }));
@@ -1872,7 +2104,7 @@ function fillGrid() {
       const grid = el("div", { className: "dgrid" });
       grid.append(...list.slice(0, dShown).map(discoverCard));
       kids.push(grid);
-      if (list.length > dShown) kids.push(el("button", { className: "dmore", textContent: `Show more (${list.length - dShown} left)`, onclick: () => { dShown += 24; fillGrid(); } }));
+      if (list.length > dShown) kids.push(ib("more", `Show more (${list.length - dShown} left)`, { className: "dmore", onclick: () => { dShown += 24; fillGrid(); } }));
     }
   }
   dGridBox.replaceChildren(...kids);
@@ -1882,8 +2114,8 @@ function renderDiscover() {
   const all = dData[dKey(dIdx)], kids = [];
   const go = d => { dIdx += d; dShown = 24; dGenre = ""; renderDiscover(); };
   const head = el("div", { className: "dhead" });
-  const prev = el("button", { className: "arrow", textContent: "‹", onclick: () => go(-1) });
-  const next = el("button", { className: "arrow", textContent: "›", disabled: dIdx >= nowIdx + 1, onclick: () => go(1) });
+  const prev = ib("left", "", { className: "arrow", title: "Earlier season", onclick: () => go(-1) });
+  const next = ib("right", "", { className: "arrow", title: "Later season", disabled: dIdx >= nowIdx + 1, onclick: () => go(1) });
   prev.setAttribute("aria-label", "Earlier season"); next.setAttribute("aria-label", "Later season");
   const h2 = el("h2"); h2.innerHTML = `<span>${SEASON_NAMES[dIdx % 4]}</span> ${Math.floor(dIdx / 4)}`;
   head.append(prev, h2, next, el("span", { className: "when", textContent: dIdx === nowIdx ? "This season" : dIdx > nowIdx ? "Coming up" : "Past season" }));
@@ -1896,7 +2128,7 @@ function renderDiscover() {
   search.setAttribute("aria-label", "Search this season");
   search.oninput = () => { dQuery = search.value.trim().toLowerCase(); dShown = 24; fillGrid(); };   // only the cards change, so typing keeps its focus
   bar.append(search, el("span", { className: "grow" }),
-    el("button", { textContent: "Hide shows on my list", className: dHide ? "on" : "", onclick: () => { dHide = !dHide; localStorage.setItem("dHide", dHide ? "1" : "0"); renderDiscover(); } }));
+    ib("hide", "Hide shows on my list", { className: dHide ? "on" : "", onclick: () => { dHide = !dHide; localStorage.setItem("dHide", dHide ? "1" : "0"); renderDiscover(); } }));
   const genres = [...new Set((all || []).flatMap(sh => sh.genres))].sort();
   if (genres.length) bar.append(dropdown([["", "All genres"], ...genres.map(g => [g, g])], dGenre, "Genre", v => { dGenre = v; dShown = 24; renderDiscover(); }, dGenre ? "on" : ""));
   kids.push(bar);
@@ -1931,11 +2163,11 @@ function renderCalendar() {
   const fmt = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   const go = n => { cStart = new Date(cStart.getFullYear(), cStart.getMonth(), cStart.getDate() + 7 * n); cOpen.clear(); renderCalendar(); };
   const head = el("div", { className: "dhead" });
-  const prev = el("button", { className: "arrow", textContent: "‹", onclick: () => go(-1) }), next = el("button", { className: "arrow", textContent: "›", onclick: () => go(1) });
+  const prev = ib("left", "", { className: "arrow", title: "Earlier week", onclick: () => go(-1) }), next = ib("right", "", { className: "arrow", title: "Later week", onclick: () => go(1) });
   prev.setAttribute("aria-label", "Earlier week"); next.setAttribute("aria-label", "Later week");
   const h2 = el("h2"); h2.innerHTML = `<span>${thisWeek ? "This week" : rel === 1 ? "Next week" : rel === -1 ? "Last week" : "Week of"}</span> ${fmt(mon)} – ${fmt(sun)}`;
   head.append(prev, h2, next, el("span", { className: "when", textContent: thisWeek ? "Current week" : rel > 0 ? "Coming up" : "Past week" }));
-  if (!thisWeek) head.append(el("button", { className: "btn-lite", textContent: "Jump to this week", onclick: () => { cStart = weekStart(new Date()); cOpen.clear(); renderCalendar(); } }));
+  if (!thisWeek) head.append(ib("today", "Jump to this week", { className: "btn-lite", onclick: () => { cStart = weekStart(new Date()); cOpen.clear(); renderCalendar(); } }));
   const bar = el("div", { className: "dbar" });
   bar.append(el("button", { textContent: "Only my list", className: cMine ? "on" : "", onclick: () => { cMine = !cMine; localStorage.setItem("cMine", cMine ? "1" : "0"); renderCalendar(); } }),
     el("span", { className: "grow" }), el("span", { className: "sub", textContent: "Times are in your time zone" }));
@@ -2049,13 +2281,14 @@ function renderStats() {
   scrollTo(0, keep);
 }
 
-$("viewSwitch").onclick = ev => {
-  const v = ev.target.dataset?.v;
-  if (!v || v === view) return;
+function setView(v) {
+  if (v === view) return;
   view = v; localStorage.setItem("view", v); closeGear();
   if (v === "stats") sLog = null;   // re-read the log each time the page is opened
   render();
-};
+}
+$("viewSwitch").onclick = ev => { const v = ev.target.dataset?.v; if (v) setView(v); };
+$("friendsBtn").onclick = () => setView("friends");
 $("friendFile").onchange = async ev => {
   const f = ev.target.files[0];
   ev.target.value = "";
@@ -2066,8 +2299,7 @@ $("friendFile").onchange = async ev => {
     if (!r.ok) return flash(d.error, true);
     flash(`Added ${d.count} recommendations from ${d.from}`);
     await loadFriends();
-    tab = "friends"; localStorage.setItem("tab2", tab);
-    render();
+    view === "friends" ? render() : setView("friends");
   } catch { flash("Couldn't read that file", true); }
 };
 // MyAnimeList export (animelist_*.xml or .xml.gz): adds what isn't on the list yet.
@@ -2115,6 +2347,8 @@ $("restoreFile").onchange = async ev => {
   flash(`Restored ${d.count} titles`);
   setTimeout(() => location.reload(), 900);
 };
+$("addBtn").className = "has-i"; $("addBtn").prepend(ico("add"));
+$("clearBtn").className = "clear has-i"; $("clearBtn").prepend(ico("close"));
 $("clearBtn").onclick = () => { filt.year = filt.rating = filt.with = ""; filt.tags.clear(); render(); };
 $("q").oninput = ev => { q = ev.target.value.toLowerCase(); render(); };
 

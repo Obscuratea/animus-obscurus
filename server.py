@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Local anime list: serves index.html and keeps the Excel sheet in sync. Stdlib only."""
-import hashlib, io, json, mimetypes, os, re, shutil, sys, tempfile, threading, time, urllib.error, urllib.request, webbrowser, zipfile
+import hashlib, io, json, mimetypes, os, re, secrets, shutil, sys, tempfile, threading, time, urllib.error, urllib.request, webbrowser, zipfile
 from urllib.parse import parse_qs, unquote, urlparse
 import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.3.5"
+VERSION = "1.4.0"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -157,9 +157,10 @@ QUERY = """query($s:String){Media(search:$s,type:ANIME){id title{romaji english}
 ID_QUERY = """query($id:Int){Media(id:$id,type:ANIME){id title{romaji english} coverImage{large}}}"""
 SEARCH_QUERY = """query($s:String){Page(perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){
   id format seasonYear title{romaji english} coverImage{medium}}}}"""
-SEASON_QUERY = """query($id:Int){Media(id:$id){id format episodes title{romaji english}
+SEASON_QUERY = """query($id:Int){Media(id:$id){id format status episodes title{romaji english}
   coverImage{large} nextAiringEpisode{episode airingAt} relations{edges{relationType node{id format}}}}}"""
 SEASONS_DB = os.path.join(ROOT, "data", "seasons.json")
+SEASONS_V = 2             # bump when the shape or meaning of cached seasons changes
 AIRING_TTL = 3 * 3600     # airing shows gain episodes weekly
 SEASONS_TTL = 24 * 3600   # a day: a newly announced sequel should show up soon
 TV = ("TV", "TV_SHORT")
@@ -419,10 +420,13 @@ def info_for(name):
 
 
 def episode_count(node):
-    """Episodes out so far: for an airing show that's one before the next to air."""
+    """Episodes out so far: for an airing show that's one before the next to air.
+    A part that hasn't started, or is airing with no schedule, has only a planned total: not episodes you can watch."""
     nxt = node.get("nextAiringEpisode")
     if nxt:
         return nxt["episode"] - 1
+    if node.get("status") in ("NOT_YET_RELEASED", "RELEASING"):
+        return None
     return node["episodes"] or None
 
 
@@ -481,6 +485,8 @@ def seasons_for(name):
         except FileNotFoundError:
             db = {}
         ent = db.get(name)
+        if ent and ent.get("v") != SEASONS_V:
+            ent = None  # counted planned episodes as released
         if ent and not all("cover" in x for x in ent["seasons"]):
             ent = None  # cached before covers were stored
         if ent and any(x.get("airing") and "next" not in x for x in ent["seasons"]):
@@ -494,7 +500,7 @@ def seasons_for(name):
             return None
         media_id = cover.get("id") or int(cover["file"].split(".")[0])
         seasons = build_seasons(media_id)
-        db[name] = {"at": time.time(), "seasons": seasons}
+        db[name] = {"at": time.time(), "v": SEASONS_V, "seasons": seasons}
         with open(SEASONS_DB, "w") as f:
             json.dump(db, f, indent=1)
         return seasons
@@ -887,8 +893,9 @@ def export_recs():
     return me, {"app": "animus-recs", "v": 1, "from": me, "items": out}
 
 
-def import_recs(doc):
-    """Keep a friend's exported list (replacing their earlier one). Everything in it is treated as untrusted text."""
+def import_recs(doc, code=None):
+    """Keep a friend's exported list (replacing their earlier one). Everything in it is treated as untrusted text.
+    `code` is the friend's live share id, kept so their list can be refreshed later."""
     if not isinstance(doc, dict) or doc.get("app") != "animus-recs" or not isinstance(doc.get("items"), list):
         raise ValueError("that isn't an Animus recommendations file")
     who = str(doc.get("from") or "A friend").strip()[:40] or "A friend"
@@ -907,10 +914,143 @@ def import_recs(doc):
         db = load_friends()
         for old in [k for k in db if k.lower() == who.lower()]:
             del db[old]   # "sam" and "Sam" are the same friend: their new list replaces the old one
+        if code:
+            for old in [k for k, v in db.items() if v.get("code") == code]:
+                del db[old]   # the same person under a new name
         db[who] = {"at": time.time(), "items": items}
+        if code:
+            db[who]["code"] = code
         with open(FRIENDS, "w", encoding="utf-8") as f:
             json.dump(db, f, indent=1)
     return who, len(items)
+
+
+# ---- Live sharing through a small relay (see relay/). Opt-in; only the recommendations are ever sent. ----
+RELAY_DEFAULT = "https://animus-relay.joshua-waguespack10.workers.dev"   # address of the deployed relay; ANIMUS_RELAY or settings "relay" override it
+RELAY_ID_RE = re.compile(r"^[A-Za-z0-9_-]{20,40}$")
+relay_state = {"err": "", "pushed": 0, "hash": "", "wake": threading.Event()}
+
+
+def relay_url():
+    return (os.environ.get("ANIMUS_RELAY") or read_settings().get("relay") or RELAY_DEFAULT).rstrip("/")
+
+
+def write_settings(cur):
+    os.makedirs(os.path.dirname(SETTINGS), exist_ok=True)
+    with open(SETTINGS, "w", encoding="utf-8") as f:
+        json.dump(cur, f, indent=1)
+
+
+def relay_call(method, rid, body=None, key=None):
+    url = relay_url()
+    if not url:
+        raise ValueError("live sharing isn't switched on in this version yet")
+    headers = {"User-Agent": "animus-obscurus", "Content-Type": "application/json"}
+    if key:
+        headers["X-Key"] = key
+    req = urllib.request.Request(f"{url}/r/{rid}", data=body, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return r.read(1_000_000)
+    except urllib.error.HTTPError as e:
+        raise ValueError({404: "nobody is sharing with that code (they may have turned it off)",
+                          403: "the sharing service refused this", 413: "your list is too big to share"}.get(e.code, f"the sharing service answered {e.code}"))
+    except (urllib.error.URLError, OSError):
+        raise ValueError("couldn't reach the sharing service")
+
+
+def parse_code(text):
+    rid = re.sub(r"\s+", "", str(text))
+    rid = rid[7:] if rid.lower().startswith("animus:") else rid
+    if not RELAY_ID_RE.match(rid):
+        raise ValueError("that doesn't look like an Animus share code")
+    return rid
+
+
+def relay_status():
+    s = read_settings()
+    return {"ready": bool(relay_url()), "sharing": bool(s.get("share")), "me": s.get("me", ""),
+            "code": "animus:" + s["relay_id"] if s.get("share") and s.get("relay_id") else "",
+            "error": relay_state["err"], "pushed": relay_state["pushed"]}
+
+
+def relay_push(force=False):
+    """Send my recommendations when they changed (or once a day, so the relay keeps them)."""
+    s = read_settings()
+    if not s.get("share") or not s.get("relay_id"):
+        return False
+    _, doc = export_recs()
+    body = json.dumps(doc, separators=(",", ":")).encode()
+    h = hashlib.sha256(body).hexdigest()
+    if not force and h == relay_state["hash"] and time.time() - relay_state["pushed"] < 86400:
+        return False
+    relay_call("PUT", s["relay_id"], body, s["relay_key"])
+    relay_state.update(hash=h, pushed=time.time(), err="")
+    return True
+
+
+def relay_set_sharing(on, reset=False):
+    s = read_settings()
+    if (not on or reset) and s.get("relay_id"):
+        try:
+            relay_call("DELETE", s["relay_id"], key=s["relay_key"])
+        except ValueError:
+            pass   # already gone, or unreachable: forgetting the code locally is what matters
+        s.pop("relay_id", None); s.pop("relay_key", None)
+    if on:
+        if not s.get("me"):
+            raise ValueError("set your name first, so friends can see who is sharing")
+        if not s.get("relay_id"):
+            s["relay_id"], s["relay_key"] = secrets.token_urlsafe(16), secrets.token_urlsafe(24)
+    s["share"] = bool(on)
+    write_settings(s)
+    if on:
+        try:
+            relay_push(force=True)
+        except ValueError:
+            s["share"] = False
+            write_settings(s)
+            raise
+
+
+def relay_follow(code_text):
+    rid = parse_code(code_text)
+    if rid == read_settings().get("relay_id"):
+        raise ValueError("that's your own code")
+    return import_recs(json.loads(relay_call("GET", rid)), rid)
+
+
+def relay_refresh():
+    """Re-read every friend that was added by code. Returns (how many updated, problems)."""
+    done, problems = 0, []
+    for who, v in list(load_friends().items()):
+        if not v.get("code"):
+            continue
+        try:
+            import_recs(json.loads(relay_call("GET", v["code"])), v["code"])
+            done += 1
+        except ValueError as e:
+            problems.append(f"{who}: {e}")
+    return done, problems
+
+
+def relay_loop():
+    relay_state["wake"].set()
+    last_pull = 0
+    while True:
+        woke = relay_state["wake"].wait(1800)
+        if woke:
+            time.sleep(15)   # let a burst of edits settle
+            relay_state["wake"].clear()
+        if not relay_url():
+            continue
+        try:
+            relay_push()
+            if time.time() - last_pull > 3 * 3600:
+                last_pull = time.time()
+                relay_refresh()
+        except Exception as e:
+            relay_state["err"] = str(e)
 
 
 def make_backup():
@@ -1047,7 +1187,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, sorted(ids))
         if self.path == "/api/friends":
             db = load_friends()
-            return self.send(200, [{"from": who, "at": v["at"], "items": v["items"]} for who, v in db.items()])
+            return self.send(200, [{"from": who, "at": v["at"], "items": v["items"], "live": bool(v.get("code"))} for who, v in db.items()])
+        if self.path == "/api/relay":
+            return self.send(200, relay_status())
         if self.path == "/api/recs/export":
             me, doc = export_recs()
             data = json.dumps(doc, indent=1).encode()
@@ -1145,6 +1287,20 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self.send(400, {"error": str(e)})
             return self.send(200, {"ok": True})
+        if self.path in ("/api/relay/share", "/api/relay/follow", "/api/relay/sync"):
+            try:
+                req = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+                if self.path.endswith("share"):
+                    relay_set_sharing(bool(req.get("on")), bool(req.get("reset")))
+                    return self.send(200, relay_status())
+                if self.path.endswith("follow"):
+                    who, count = relay_follow(req.get("code", ""))
+                    return self.send(200, {"from": who, "count": count})
+                relay_push()
+                done, problems = relay_refresh()
+                return self.send(200, {"updated": done, "problems": problems})
+            except Exception as e:
+                return self.send(400, {"error": str(e)})
         if self.path in ("/api/recs/import", "/api/friends/remove"):
             n = int(self.headers.get("Content-Length", 0))
             if n > 5_000_000:
@@ -1213,6 +1369,7 @@ class Handler(BaseHTTPRequestHandler):
                     cur["search"] = search
                 if "me" in req:
                     cur["me"] = str(req["me"]).strip()[:40]
+                    relay_state["wake"].set()   # a shared list carries the name
                 if "autoupdate" in req:
                     cur["autoupdate"] = bool(req["autoupdate"])
                 if "theme" in req:   # {title, h, s} picked from a cover, or null for the default look
@@ -1251,6 +1408,7 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 old = []
             write_items(items)
+            relay_state["wake"].set()
             try:
                 log_history(old, items)
             except Exception:
@@ -1266,6 +1424,7 @@ if __name__ == "__main__":
     ensure_list()
     server = SERVER = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     threading.Thread(target=update_loop, daemon=True).start()
+    threading.Thread(target=relay_loop, daemon=True).start()
     print(f"Animus Obscurus is running on http://127.0.0.1:{port}  (close this window to stop it)")
     if "--open" in sys.argv:
         webbrowser.open(f"http://127.0.0.1:{port}")

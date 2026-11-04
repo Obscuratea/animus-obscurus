@@ -16,7 +16,7 @@ SST = "xl/sharedStrings.xml"
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 TEMPLATE = os.path.join(ROOT, "template", "Anime Watch List.xlsx")   # blank list for a first run
 SETTINGS = os.path.join(ROOT, "data", "settings.json")
-DEFAULT_SEARCH = "https://www.miruro.cx/search?query={q}"   # used until settings.json exists
+DEFAULT_SEARCH = ""   # no streaming site until the user picks one (gear → Streaming site)
 FIRST_ROW = 3          # rows 1-2 are the link + header
 STYLES = {"A": 6, "B": 6, "C": 7, "D": 8, "E": 8, "F": 8, "G": 8, "H": 8, "I": 8, "J": 8}
 HEADERS = {"B": "Season / Episode", "C": "Status", "D": "Notes", "E": "Cover URL", "F": "Watch Links",

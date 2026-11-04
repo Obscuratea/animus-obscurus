@@ -1,5 +1,15 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.5.2
+**New**
+- **Discover has three modes:** Season, Tonight and Random.
+- **Tonight** has **Pick for me** (a random show from your Not started and On hold lists, with pinned and recommended ones more likely, plus a Watch button and Pick again) and **Up next** (shows you've started that have a new episode out).
+- **Random** rolls 6 shows from all of AniList. **ROLL** gets a new set, and you can pick Anything, Hidden gems or Well known.
+- **Go** button on the Streaming site row in the gear: opens your streaming site in a new tab.
+
+**Fixes**
+- **Any rating** now lists the age ratings (with counts) and "Not rated yet". Ratings also come from a second source when the first can't be reached, so lists no longer end up with none.
+
 ## 1.5.1
 **Fixes**
 - **Sharing works on more PCs.** On some Windows PCs, making a share code or adding a friend's code said "couldn't reach the sharing service" even though everything else worked. Windows hadn't stored the security certificate the sharing service uses, and Animus now brings that certificate along itself.

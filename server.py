@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Local anime list: serves index.html and keeps the Excel sheet in sync. Stdlib only."""
-import difflib, functools, hashlib, io, json, mimetypes, os, re, secrets, shutil, socket, ssl, sys, tempfile, threading, time, unicodedata, urllib.error, urllib.request, webbrowser, zipfile
+import difflib, functools, hashlib, io, json, mimetypes, os, random, re, secrets, shutil, socket, ssl, sys, tempfile, threading, time, unicodedata, urllib.error, urllib.request, webbrowser, zipfile
 from urllib.parse import parse_qs, unquote, urlparse
 import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.5.1"
+VERSION = "1.5.2"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -16,7 +16,7 @@ SST = "xl/sharedStrings.xml"
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 TEMPLATE = os.path.join(ROOT, "template", "Anime Watch List.xlsx")   # blank list for a first run
 SETTINGS = os.path.join(ROOT, "data", "settings.json")
-DEFAULT_SEARCH = "https://miruro.cx/search?query={q}"   # used until settings.json exists
+DEFAULT_SEARCH = "https://www.miruro.cx/search?query={q}"   # used until settings.json exists
 FIRST_ROW = 3          # rows 1-2 are the link + header
 STYLES = {"A": 6, "B": 6, "C": 7, "D": 8, "E": 8, "F": 8, "G": 8, "H": 8, "I": 8, "J": 8}
 HEADERS = {"B": "Season / Episode", "C": "Status", "D": "Notes", "E": "Cover URL", "F": "Watch Links",
@@ -458,6 +458,41 @@ def rating_code(text, adult):
     return code, text or ""
 
 
+KITSU_GAP = 0.6
+kitsu_lock = threading.Lock()
+
+
+def kitsu_text(rating, guide):
+    """Kitsu's age rating (G / PG / R / R18 plus a guide line) in MyAnimeList's wording, so rating_code() reads it."""
+    g = (guide or "").lower()
+    if rating == "G":
+        return "G - All Ages"
+    if rating == "PG":
+        return "PG-13 - Teens 13 or older" if "teen" in g else "PG - Children"
+    if rating == "R":
+        return "R+ - Mild Nudity" if "nudity" in g else "R - 17+ (violence & profanity)"
+    if rating == "R18":
+        return "Rx - Hentai"
+    return None
+
+
+def kitsu_rating(mal_id):
+    """Age rating from Kitsu, looked up by MyAnimeList id. Used when MyAnimeList's own API can't be reached.
+    Returns the MAL-style text, or None when Kitsu has no rating for the show; raises OSError/ValueError if Kitsu is down."""
+    url = ("https://kitsu.io/api/edge/mappings?filter%5BexternalSite%5D=myanimelist/anime"
+           f"&filter%5BexternalId%5D={int(mal_id)}&include=item")
+    with kitsu_lock:
+        time.sleep(KITSU_GAP)
+        req = urllib.request.Request(url, headers={"Accept": "application/vnd.api+json", "User-Agent": "anime-list"})
+        data = json.load(urllib.request.urlopen(req, timeout=8))
+    for item in data.get("included", []):
+        a = item.get("attributes", {})
+        text = kitsu_text(a.get("ageRating"), a.get("ageRatingGuide"))
+        if text:
+            return text
+    return None
+
+
 def load_info():
     try:
         with open(INFO_DB) as f:
@@ -477,30 +512,38 @@ def mal_done(ent):
 
 
 def fetch_rating(media_id):
-    """Ask MAL for one title's rating, score, rank and popularity and save them. Failures are remembered so we don't retry soon."""
+    """Ask MAL for one title's rating, score, rank and popularity and save them. When MAL can't be reached the age rating
+    comes from Kitsu instead (score/rank/popularity wait for MAL). Failures are remembered so we don't retry soon."""
     with info_lock:
         ent = load_info().get(str(media_id))
     if not ent or mal_done(ent):
         return
+    data, text, got, paused = {}, None, False, False
     try:
         data = (jikan_data(ent["mal"]) if ent.get("mal") else None) or {}
-        text = data.get("rating")
-        failed = False
+        text, got = data.get("rating"), True
     except JikanDown as e:
-        if str(e) == "paused":
-            return   # nothing was asked; it gets queued again after the pause
-        text, failed = None, True
+        paused = str(e) == "paused"
+    source = "mal"
+    if not got and not ent.get("rated") and ent.get("mal"):
+        try:
+            text = kitsu_rating(ent["mal"])
+            got, source = text is not None, "kitsu"
+        except (OSError, ValueError):
+            pass
+    if not got and paused:
+        return   # nothing was asked; it gets queued again after the pause
     with info_lock:
         db = load_info()
         ent = db.get(str(media_id))
         if not ent:
             return
-        if failed:
+        if not got:
             ent["rating_try"] = time.time()
         else:
             code, shown = rating_code(text, ent.get("adult"))
-            ent.update(rating=code, ratingText=shown, rated=True)
-            if ent.get("mal"):
+            ent.update(rating=code, ratingText=shown, rated=True, rating_src=source)
+            if source == "mal" and ent.get("mal"):
                 ent.update(mal_score=data.get("score"), mal_rank=data.get("rank"), mal_pop=data.get("popularity"))
         save_info(db)
 
@@ -524,7 +567,7 @@ def want_rating(media_id):
         ent = load_info().get(str(media_id))
         if (not ent or mal_done(ent) or media_id in rating_queue
                 or time.time() - ent.get("rating_try", 0) < RATING_RETRY
-                or time.time() < jikan_pause_until[0]):
+                or (ent.get("rated") and time.time() < jikan_pause_until[0])):
             return
         rating_queue.append(media_id)
         if rating_worker[0] is None:
@@ -545,7 +588,7 @@ def info_stale(ent):
 def keep_mal(fresh, old):
     """A refreshed entry keeps the MAL facts already fetched for it."""
     if old.get("rated") and fresh.get("mal") == old.get("mal"):
-        fresh.update({k: old[k] for k in ("rating", "ratingText", "rated", "mal_score", "mal_rank", "mal_pop") if k in old})
+        fresh.update({k: old[k] for k in ("rating", "ratingText", "rated", "rating_src", "mal_score", "mal_rank", "mal_pop") if k in old})
     return fresh
 
 
@@ -786,6 +829,18 @@ def tidy_description(text):
     return text
 
 
+def show_from(m):
+    """One AniList media node as the dict the Discover cards use."""
+    t = m["title"]
+    nxt = m.get("nextAiringEpisode")
+    return {"id": m["id"], "title": t.get("english") or t["romaji"], "ro": t["romaji"], "jp": t.get("native") or t["romaji"], "format": m["format"],
+            "episodes": m["episodes"], "duration": m["duration"], "status": m["status"],
+            "score": m["averageScore"], "popularity": m["popularity"], "genres": m["genres"],
+            "studio": (m["studios"]["nodes"] or [{}])[0].get("name", ""),
+            "cover": m["coverImage"]["extraLarge"], "desc": tidy_description(m["description"]),
+            "start": m["startDate"], "next": {"episode": nxt["episode"], "at": nxt["airingAt"]} if nxt else None}
+
+
 def discover(season, year):
     """Every show of one season (several AniList pages, saved on disk; stale copy used if AniList is down)."""
     key = f"{season}-{year}"
@@ -804,15 +859,7 @@ def discover(season, year):
         try:
             for page in range(1, 5):
                 data = gql(DISCOVER_QUERY, {"season": season, "year": year, "page": page}, "Page")
-                for m in data["media"]:
-                    t = m["title"]
-                    nxt = m.get("nextAiringEpisode")
-                    shows.append({"id": m["id"], "title": t.get("english") or t["romaji"], "ro": t["romaji"], "jp": t.get("native") or t["romaji"], "format": m["format"],
-                                  "episodes": m["episodes"], "duration": m["duration"], "status": m["status"],
-                                  "score": m["averageScore"], "popularity": m["popularity"], "genres": m["genres"],
-                                  "studio": (m["studios"]["nodes"] or [{}])[0].get("name", ""),
-                                  "cover": m["coverImage"]["extraLarge"], "desc": tidy_description(m["description"]),
-                                  "start": m["startDate"], "next": {"episode": nxt["episode"], "at": nxt["airingAt"]} if nxt else None})
+                shows.extend(show_from(m) for m in data["media"])
                 if not data["pageInfo"]["hasNextPage"]:
                     break
         except Exception:
@@ -824,6 +871,39 @@ def discover(season, year):
         with open(DISCOVER_DB, "w", encoding="utf-8") as f:
             json.dump(db, f)
         return ent
+
+
+# ---- Random: shows picked at random from the whole AniList catalogue.
+# AniList can't page past 5000 results and has no random sort, so one call asks about a big random batch of ids
+# (id_in) and the filters keep the real anime worth showing; whatever matches is a fair sample of the catalogue.
+RANDOM_KINDS = {   # filter, how many random ids to try (rarer kinds need more)
+    "anything": ("popularity_greater:800", 1500),
+    "known": ("popularity_greater:20000", 4000),
+    "gems": ("averageScore_greater:70,popularity_greater:2000,popularity_lesser:20000", 3000),
+}
+RANDOM_FIELDS = DISCOVER_QUERY.split("sort:POPULARITY_DESC){")[1].rsplit("}}}", 1)[0]
+random_top = [0, 0.0]   # highest AniList anime id, when it was looked up
+
+
+def random_picks(kind, n):
+    """`n` random shows of one kind (a few extra, so the page can drop the ones already on the list)."""
+    filt, tries = RANDOM_KINDS[kind]
+    if time.time() - random_top[1] > 6 * 3600:
+        try:
+            random_top[:] = [gql("{Media(type:ANIME,sort:ID_DESC){id}}", {})["id"], time.time()]
+        except Exception:
+            random_top[0] = random_top[0] or 220000
+            random_top[1] = time.time()
+    query = ("query($ids:[Int]){Page(perPage:50){media(id_in:$ids,type:ANIME,isAdult:false,format_in:[TV,MOVIE]," + filt + "){"
+             + RANDOM_FIELDS + "}}}")
+    found = []
+    for _ in range(3):   # a thin kind may need a second batch of ids
+        ids = random.sample(range(1, random_top[0] + 1), min(tries, random_top[0]))
+        found = [m for m in gql(query, {"ids": ids}, "Page")["media"] if m["id"] not in {f["id"] for f in found}] + found
+        if len(found) >= n + 4:
+            break
+    random.shuffle(found)
+    return [show_from(m) for m in found[:n + 4]]
 
 
 # ---- Calendar: what airs in a week (AniList's real schedule, not a projection).
@@ -1657,6 +1737,18 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, read_items())
         if self.path == "/api/settings":
             return self.send(200, read_settings())
+        if self.path.startswith("/api/random"):
+            q = parse_qs(urlparse(self.path).query)
+            kind = q.get("kind", ["anything"])[0]
+            try:
+                n = max(1, min(12, int(q.get("n", ["6"])[0])))
+                if kind not in RANDOM_KINDS:
+                    raise ValueError("bad kind")
+                return self.send(200, {"shows": random_picks(kind, n)})
+            except ValueError:
+                return self.send(400, {"error": "bad request"})
+            except Exception as e:
+                return self.send(503, {"error": str(e)})
         if self.path.startswith("/api/discover"):
             q = parse_qs(urlparse(self.path).query)
             season = (q.get("season", [""])[0]).upper()

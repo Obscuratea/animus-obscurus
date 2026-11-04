@@ -356,6 +356,12 @@ body.gallery #gear { opacity: 0; pointer-events: none; }
 .gearpanel .ic { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--tone); color: var(--on-tone); font-size: 17px; }
 .gearpanel .it b { display: block; font-weight: 600; font-size: 14px; }
 .gearpanel .it small { color: var(--dim); font-size: 12.5px; line-height: 1.25; display: block; }
+.gearpanel .itwrap { display: flex; align-items: center; gap: 6px; }
+.gearpanel .itwrap button.it { flex: 1; width: auto; min-width: 0; }
+.gearpanel a.gogo { flex: none; display: inline-flex; align-items: center; gap: 2px; padding: 8px 10px 8px 16px; margin-right: 6px; border-radius: 999px; background: var(--grad);
+  color: var(--on-accent, #fff); text-decoration: none; font: 700 13px var(--sans); }
+.gearpanel a.gogo .i { width: 18px; height: 18px; }
+.gearpanel a.gogo:hover, .gearpanel a.gogo:focus-visible { filter: brightness(1.08); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent); }
 .gearpanel .foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px 6px; margin-top: 6px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--dim); }
 .gearpanel .foot button { background: none; padding: 4px 8px; color: var(--accent); font: 600 12.5px var(--sans); }
 .modal .md h3 { margin: 18px 0 6px; font-size: 16px; }
@@ -531,6 +537,33 @@ li.opened .lead, .bigbody { overflow-x: hidden; }
 .dcard .go button.add { flex: 1; padding: 10px 14px; width: auto; font-size: 14px; font-weight: 700; }
 .dcard .go a.more { padding: 10px 16px; border-radius: 999px; background: var(--raised); color: var(--ink); text-decoration: none; font: 600 14px var(--sans); }
 .dcard .go a.more:hover { background: var(--fill-tone); color: var(--on-tone); }
+.dmodes { position: relative; margin-bottom: 18px; }
+.dkinds { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.dkinds > button { font: 500 13px var(--sans); }
+.dkinds .on { background: var(--fill-tone); color: var(--on-tone); }
+.dkinds .grow { flex: 1; }
+.roll { padding: 13px 30px; border-radius: 999px; background: var(--grad); color: var(--on-accent, #fff); font: 800 16px var(--sans); letter-spacing: .08em; box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 40%, transparent); }
+.roll .i { width: 24px; height: 24px; }
+.roll.rolling .i { animation: rollspin .7s linear infinite; }
+.roll:disabled { opacity: .8; cursor: progress; }
+@keyframes rollspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .roll.rolling .i { animation: none; } }
+.dgrid.busy { opacity: .45; transition: opacity .15s; }
+.tsec { margin: 8px 0 26px; }
+.tsec > h3 { margin: 0 0 10px; font: 700 20px var(--sans); }
+.tsec > h3 small { margin-left: 10px; color: var(--dim); font: 500 13px var(--sans); }
+.tstrip .strip { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 10px; }
+.tstrip a { flex: none; width: 110px; text-decoration: none; color: var(--ink); font: 12px/1.3 var(--sans); }
+.tstrip img, .tstrip .ph { display: block; width: 110px; height: 156px; border-radius: 14px; object-fit: cover; background: var(--well); transition: transform .15s; }
+.tstrip .ph { display: grid; place-items: center; font: 700 32px var(--sans); color: var(--dim); }
+.tstrip a:hover img, .tstrip a:focus-visible img { transform: translateY(-3px); }
+.tstrip a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
+.tstrip b { display: block; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.tstrip span { color: var(--dim); }
+.dcard .why { color: var(--dim); font: 500 13px var(--sans); }
+.dcard .go button.again { padding: 10px 16px; border-radius: 999px; background: var(--raised); color: var(--ink); font: 600 14px var(--sans); }
+.dcard .go a.watch { flex: 1; text-align: center; padding: 10px 14px; border-radius: 999px; background: var(--grad); color: var(--on-accent, #fff); text-decoration: none; font: 700 14px var(--sans); }
+.pickbox { max-width: 760px; }
 .dmore { display: block; margin: 22px auto 0; padding: 11px 26px; font: 600 14px var(--sans); }
 @media (max-width: 900px) { .dgrid { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .dcard { grid-template-columns: 120px 1fr; } .dhead h2 { font-size: 28px; } }
@@ -780,6 +813,7 @@ const elc = (tag, props, ...kids) => { const n = el(tag, props); n.append(...kid
 
 // One small icon set (Material paths, 24px) so buttons look like one family. ico() makes the <svg>; ib() a button with an icon and/or text.
 const IC = {
+  dice: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7.5 18c-.83 0-1.5-.67-1.5-1.5S6.67 15 7.5 15s1.5.67 1.5 1.5S8.33 18 7.5 18zm0-9C6.67 9 6 8.33 6 7.5S6.67 6 7.5 6 9 6.67 9 7.5 8.33 9 7.5 9zm4.5 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm0-9c-.83 0-1.5-.67-1.5-1.5S15.67 6 16.5 6s1.5.67 1.5 1.5S17.33 9 16.5 9z",
   share: "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z",
   personAdd: "M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
   person: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
@@ -1099,6 +1133,20 @@ function render() {
   prefetchInfo();
 }
 
+// A link that opens the episode `next` of a list item on the streaming site (asks for a link first if there is none).
+function watchAnchor(it, next) {
+  const link = linkFor(it, next.s);
+  const a = el("a", { target: "_blank", rel: "noopener", href: link ? watchUrl(link, next.e) : "#" });
+  a.dataset.tip = link ? `Watch next · ${it.name}` : `Paste a link to watch ${it.name}`;
+  a.onclick = ev => {
+    if (link) return;
+    ev.preventDefault();
+    const t = askLink(it, next.s, next.e);
+    if (t) window.open(watchUrl(t, next.e), "_blank", "noopener");
+  };
+  return a;
+}
+
 // "Continue watching": the shows you moved forward most recently, each opening its next episode.
 function renderContinue() {
   const box = $("contRow");
@@ -1111,15 +1159,8 @@ function renderContinue() {
   if (box.hidden) return box.replaceChildren();
   const strip = el("div", { className: "strip" });
   for (const it of picks) {
-    const next = nextEpisode(it), link = linkFor(it, next.s);
-    const a = el("a", { target: "_blank", rel: "noopener", href: link ? watchUrl(link, next.e) : "#" });
-    a.dataset.tip = link ? `Watch next · ${it.name}` : `Paste a link to watch ${it.name}`;
-    a.onclick = ev => {
-      if (link) return;
-      ev.preventDefault();
-      const t = askLink(it, next.s, next.e);
-      if (t) window.open(watchUrl(t, next.e), "_blank", "noopener");
-    };
+    const next = nextEpisode(it);
+    const a = watchAnchor(it, next);
     const img = el("img", { loading: "lazy", alt: "", src: coverSrc(it) });
     img.onerror = () => img.replaceWith(el("div", { className: "ph", textContent: it.name[0].toUpperCase() }));
     a.append(img, el("b", { textContent: shownName(it) }), el("span", { textContent: isMovie(it) ? "Movie" : `S${next.s} E${next.e} next` }));
@@ -1634,7 +1675,8 @@ const passes = it => {
   if (filt.with && !splitWith(it).includes(filt.with)) return false;
   if (!filt.year && !filt.rating && !filt.tags.size) return true;
   const f = infoOf[it.name];
-  return !!f && (!filt.year || String(f.year) === filt.year) && (!filt.rating || f.rating === filt.rating)
+  if (filt.rating === "none" && !f) return !filt.year && !filt.tags.size;   // no info yet counts as "not rated yet"
+  return !!f && (!filt.year || String(f.year) === filt.year) && (!filt.rating || (filt.rating === "none" ? !f.rating : f.rating === filt.rating))
     && [...filt.tags].every(t => f.tags.includes(t));
 };
 
@@ -1648,8 +1690,16 @@ function renderFilters() {
   };
   $("sortBy").replaceChildren(dropdown(SORTS, sortBy, "Sort by", v => { sortBy = v; localStorage.setItem("sort", v); render(); }));
   filt.year = fill($("fYear"), "Any year", [...new Set(known.map(f => f.year).filter(Boolean))].sort((a, b) => b - a).map(String), filt.year, "Year", v => { filt.year = v; render(); });
-  const ratings = new Set(known.map(f => f.rating).filter(Boolean));
-  filt.rating = fill($("fRating"), "Any rating", RATING_ORDER.filter(r => ratings.has(r)), filt.rating, "Age rating", v => { filt.rating = v; render(); });
+  // Age ratings arrive from MyAnimeList (or Kitsu) in the background: list the ones found with how many shows have each,
+  // plus "Not rated yet" so the menu is never empty while they load.
+  const rated = {};
+  let unrated = items.length - known.length;
+  for (const f of known) f.rating ? (rated[f.rating] = (rated[f.rating] || 0) + 1) : unrated++;
+  const ratingOpts = [["", "Any rating"], ...RATING_ORDER.filter(r => rated[r]).map(r => [r, `${r} · ${rated[r]}`]),
+    ...(unrated > 0 ? [["none", `Not rated yet · ${unrated}`]] : [])];
+  const ratingNow = ratingOpts.some(([v]) => v === filt.rating) ? filt.rating : "";
+  $("fRating").replaceChildren(dropdown(ratingOpts, ratingNow, "Age rating", v => { filt.rating = v; render(); }, ratingNow ? "on" : ""));
+  filt.rating = ratingNow;
   const names = new Map();
   for (const it of items) for (const n of (it.with || "").split(",").map(x => x.trim()).filter(Boolean)) names.set(n.toLowerCase(), n);
   if (filt.with && !names.has(filt.with)) filt.with = "";
@@ -2230,14 +2280,14 @@ function updateGroup() {
 }
 function gearItems() {
   let theme = ""; try { theme = JSON.parse(localStorage.getItem("theme"))?.title || ""; } catch {}
-  let host = ""; try { host = new URL(siteSearch).host; } catch {}
+  let host = "", home = ""; try { const u = new URL(siteSearch); host = u.host; home = u.origin; } catch {}
   return [
     ...updateGroup(),
     ["Look", [["look", "sparkle", "Special look", look ? `Now: ${LOOKS[look].name}${lookPick ? " (with your picked show's colours)" : ""}` : "Paper / Manga, Neon Tokyo, Retro 90s: a whole new style"],
       ["theme", "palette", "Theme from a show", theme ? `Now: ${theme}` : "Colours and background art taken from a cover you pick"],
       ["titles", "translate", "Title language", `Now: ${TITLE_LANGS.find(([k]) => k === titleLang)[1]}. Tap to switch to ${TITLE_LANGS[(TITLE_LANGS.findIndex(([k]) => k === titleLang) + 1) % 3][1]}`],
       ["layout", "grid", "Card size", cardSize === "full" ? "Now: Full width, one card per row. Tap for Wide" : "Now: Wide, as many across as fit. Tap for Full width"]]],
-    ["Streaming", [["site", "play", "Streaming site", host ? `Now: ${host}` : "The site your ▶ buttons and title links open (not set yet)"]]],
+    ["Streaming", [["site", "play", "Streaming site", host ? `Now: ${host}` : "The site your ▶ buttons and title links open (not set yet)", home]]],
     ["Friends", [["me", "person", "Your name", me ? `Shown as “${me}” on your recommendations` : "Shown on the recommendations you share"],
       ["share", "share", "Share with friends", relay?.sharing ? "On. Show my share code" : "Get a code friends can add; their lists and yours stay up to date"],
       ["code", "personAdd", "Add a friend's code", "Paste the code a friend sent you"]]],
@@ -2289,7 +2339,7 @@ function openPanel(btn, label, groups, foot) {
   panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", label);
   for (const [title, rows] of groups) {
     panel.append(el("h4", { textContent: title }));
-    for (const [act, icon, name, hint] of rows) {
+    for (const [act, icon, name, hint, go] of rows) {
       const b = el("button", { className: "it", type: "button" });
       const t = el("span");
       t.append(el("b", { textContent: name }), el("small", { textContent: hint }));
@@ -2297,7 +2347,12 @@ function openPanel(btn, label, groups, foot) {
       if (IC[icon]) g.append(ico(icon)); else g.textContent = icon;
       b.append(g, t);
       b.onclick = () => { closeGear(); gearAction(act); };
-      panel.append(b);
+      if (!go) { panel.append(b); continue; }
+      // A row with a web address also gets a "Go" button that opens it in a new tab.
+      const a = el("a", { className: "gogo", href: go, target: "_blank", rel: "noopener", title: `Open ${new URL(go).host}` });
+      a.append(document.createTextNode("Go"), ico("right"));
+      a.onclick = () => closeGear();
+      panel.append(elc("div", { className: "itwrap" }, b, a));
     }
   }
   if (foot) panel.append(foot);
@@ -2498,10 +2553,146 @@ function fillGrid() {
   }
   dGridBox.replaceChildren(...kids);
 }
+// ---- Discover modes: Season (the list below), Tonight (what to watch from your own list) and Random (a roll of AniList).
+let dMode = ["season", "tonight", "random"].includes(localStorage.getItem("dMode")) ? localStorage.getItem("dMode") : "season";
+const R_KINDS = [["anything", "Anything"], ["gems", "Hidden gems"], ["known", "Well known"]];
+let rKind = R_KINDS.some(([k]) => k === localStorage.getItem("rKind")) ? localStorage.getItem("rKind") : "anything";
+let rShows = [], rLoading = false, rError = "";
+const R_COUNT = 6;
+let tPick = "";   // name of the show "Pick for me" chose
+
+function modeBar() {
+  const bar = elc("div", { className: "seg dmodes", role: "tablist" });
+  for (const [k, label] of [["season", "Season"], ["tonight", "Tonight"], ["random", "Random"]]) {
+    const b = elc("button", { type: "button", textContent: label, role: "tab", onclick: () => { dMode = k; localStorage.setItem("dMode", k); renderDiscover(); } });
+    b.setAttribute("aria-selected", dMode === k);
+    bar.append(b);
+  }
+  return bar;
+}
+function setDiscover(kids) {
+  const keep = scrollY;
+  $("discover").replaceChildren(...kids);
+  const bar = $("discover").querySelector(".dmodes");
+  if (bar) slideTabs(bar, "dmode", true);
+  scrollTo(0, keep);
+}
+
+async function roll() {
+  if (rLoading) return;
+  rLoading = true; rError = ""; renderDiscover();
+  try {
+    const r = await fetch(`/api/random?kind=${rKind}&n=${R_COUNT}`);
+    if (!r.ok) throw new Error();
+    const all = (await r.json()).shows;
+    rShows = [...all.filter(sh => !onMyList(sh)), ...all.filter(onMyList)].slice(0, R_COUNT);   // shows already on your list only fill gaps
+  } catch { rError = "Couldn't reach AniList. Check your internet and try again."; }
+  rLoading = false;
+  if (view === "discover") renderDiscover();
+}
+function renderRandom() {
+  if (!rShows.length && !rLoading && !rError) { roll(); return; }
+  const kids = [modeBar()];
+  const bar = elc("div", { className: "dkinds" });
+  bar.append(ib("dice", rLoading ? "Rolling…" : "ROLL", { className: "roll" + (rLoading ? " rolling" : ""), disabled: rLoading, onclick: roll }), elc("span", { className: "grow" }));
+  for (const [k, label] of R_KINDS) bar.append(elc("button", { type: "button", textContent: label, className: rKind === k ? "on" : "", disabled: rLoading, onclick: () => { rKind = k; localStorage.setItem("rKind", k); roll(); } }));
+  kids.push(bar);
+  if (rError) {
+    kids.push(elc("div", { className: "empty", textContent: rError }));
+  } else if (!rShows.length) {
+    kids.push(elc("div", { className: "empty", textContent: "Rolling the dice…" }));
+  } else {
+    const grid = elc("div", { className: "dgrid" + (rLoading ? " busy" : "") });
+    grid.append(...rShows.map(discoverCard));
+    kids.push(grid);
+  }
+  setDiscover(kids);
+}
+
+// Tonight: one show picked from your own waiting list, plus whatever has an episode ready to watch.
+function pickPool() {
+  return items.filter(i => (i.status === "not started" || i.status === "on hold") && infoOf[i.name]?.status !== "NOT_YET_RELEASED");
+}
+function pickForMe(avoid) {
+  let pool = pickPool().filter(i => i.name !== avoid);
+  if (!pool.length) pool = pickPool();
+  if (!pool.length) return "";
+  const w = pool.map(i => 1 + (i.pinned ? 2 : 0) + (i.rec ? 1 : 0));   // a pinned or recommended show is likelier, never certain
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let k = 0; k < pool.length; k++) { r -= w[k]; if (r <= 0) return pool[k].name; }
+  return pool[pool.length - 1].name;
+}
+function pickCard(it) {
+  const f = infoOf[it.name] || {}, next = nextEpisode(it);
+  const card = elc("article", { className: "dcard pickbox" });
+  const poster = elc("div", { className: "poster", textContent: it.name[0].toUpperCase() });
+  const img = elc("img", { src: coverSrc(it), alt: "" });
+  img.onerror = () => img.remove();
+  poster.append(img);
+  const why = [it.status === "on hold" ? "On hold" : "Not started", it.pinned ? "pinned" : "", it.rec ? "recommended" : ""].filter(Boolean).join(" · ");
+  const info = elc("div", { className: "info" }, elc("div", { className: "top" }, elc("h3", { textContent: shownName(it) })),
+    elc("div", { className: "why", textContent: why }),
+    elc("div", { className: "facts", textContent: [f.year, (f.tags || []).slice(0, 3).join(", "), f.rating].filter(Boolean).join(" · ") }),
+    ...(f.desc ? [elc("p", { textContent: f.desc })] : []));
+  const go = elc("div", { className: "go" });
+  if (next) {
+    const a = watchAnchor(it, next);
+    a.className = "watch"; a.textContent = isMovie(it) ? "▶ Watch the movie" : `▶ Watch S${next.s} E${next.e}`;
+    go.append(a);
+  }
+  go.append(elc("button", { type: "button", className: "again", textContent: "Pick again", onclick: () => { tPick = pickForMe(it.name); renderDiscover(); } }));
+  info.append(go);
+  card.append(poster, info);
+  return card;
+}
+function upNextItems() {
+  const last = new Map();
+  for (const e of sLog || []) last.set(e.name, e.t);
+  return items.filter(i => {
+    if (i.status !== "started") return false;
+    const next = nextEpisode(i);
+    if (!next) return false;
+    if (isMovie(i)) return true;
+    const c = epCount(i, next.s);
+    return c !== null && next.e <= c;   // only an episode that is actually out
+  }).sort((a, b) => (last.get(b.name) || 0) - (last.get(a.name) || 0));
+}
+function renderTonight() {
+  if (sLog === null) loadLog();
+  const kids = [modeBar()];
+  const pool = pickPool();
+  if (!items.some(i => i.name === tPick) || !pool.some(i => i.name === tPick)) tPick = pickForMe("");
+  const pick = elc("section", { className: "tsec" }, elc("h3", { textContent: "Pick for me" }));
+  const it = items.find(i => i.name === tPick);
+  if (it) pick.append(pickCard(it));
+  else pick.append(elc("div", { className: "empty", textContent: "Nothing is waiting on your Not started or On hold lists. Try Random for something new." }),
+    ib("dice", "Go to Random", { className: "dmore", onclick: () => { dMode = "random"; localStorage.setItem("dMode", "random"); renderDiscover(); } }));
+  kids.push(pick);
+  const up = upNextItems();
+  const sec = elc("section", { className: "tsec" }, elc("h3", { textContent: "Up next" }, ...(up.length ? [elc("small", { textContent: `${up.length} ready to watch` })] : [])));
+  if (!up.length) sec.append(elc("div", { className: "empty", textContent: "You're all caught up. Nothing you're watching has a new episode waiting." }));
+  else {
+    const row = elc("div", { className: "tstrip" }), strip = elc("div", { className: "strip" });
+    for (const i of up.slice(0, 16)) {
+      const next = nextEpisode(i), a = watchAnchor(i, next);
+      const img = elc("img", { loading: "lazy", alt: "", src: coverSrc(i) });
+      img.onerror = () => img.replaceWith(elc("div", { className: "ph", textContent: i.name[0].toUpperCase() }));
+      a.append(img, elc("b", { textContent: shownName(i) }), elc("span", { textContent: isMovie(i) ? "Movie" : `S${next.s} E${next.e} next` }));
+      strip.append(a);
+    }
+    row.append(strip); sec.append(row);
+  }
+  kids.push(sec);
+  setDiscover(kids);
+}
+
 function renderDiscover() {
+  if (dMode === "random") return renderRandom();
+  if (dMode === "tonight") return renderTonight();
   loadSeason(dIdx);
   const all = dData[dKey(dIdx)], kids = [];
   const go = d => { dIdx += d; dShown = 24; dGenre = ""; renderDiscover(); };
+  kids.push(modeBar());
   const head = el("div", { className: "dhead" });
   const prev = ib("left", "", { className: "arrow", title: "Earlier season", onclick: () => go(-1) });
   const next = ib("right", "", { className: "arrow", title: "Later season", disabled: dIdx >= nowIdx + 1, onclick: () => go(1) });
@@ -2523,10 +2714,8 @@ function renderDiscover() {
   kids.push(bar);
   dGridBox = el("div");
   kids.push(dGridBox);
-  const keep = scrollY;
-  $("discover").replaceChildren(...kids);
+  setDiscover(kids);
   fillGrid();
-  scrollTo(0, keep);
 }
 /* ---------- Calendar: every episode airing in a week (AniList's real schedule) ---------- */
 const weekStart = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };   // Monday
@@ -2604,7 +2793,7 @@ function epsWatched(it) {
   return n;
 }
 const genresOf = names => { const c = {}; for (const n of names) for (const g of (infoOf[n]?.tags || [])) if (GENRES.has(g)) c[g] = (c[g] || 0) + 1; return Object.entries(c).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])); };
-async function loadLog() { try { sLog = await (await fetch("/api/history")).json(); } catch { sLog = sLog || []; } if (view === "stats") renderStats(); else if (view === "list") renderContinue(); }
+async function loadLog() { try { sLog = await (await fetch("/api/history")).json(); } catch { sLog = sLog || []; } if (view === "stats") renderStats(); else if (view === "list") renderContinue(); else if (view === "discover" && dMode === "tonight") renderDiscover(); }
 function hbars(rows, unit = "") {
   const box = el("div"), mx = Math.max(1, ...rows.map(r => r[1]));
   for (const [l, v] of rows) {

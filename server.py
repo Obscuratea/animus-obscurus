@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -1963,6 +1963,31 @@ def manga_rename(old, new):
 
 
 
+# ---- The Add popup's search: more results with details, over every title spelling (English, romaji, native, synonyms).
+FIND_FIELDS = ("id format status episodes chapters volumes isAdult countryOfOrigin genres description(asHtml:false) startDate{year} "
+               "title{romaji english native} coverImage{medium}")
+find_cache = {}
+
+
+def find_titles(kind, q):
+    q = q.strip()
+    if len(q) < 2:
+        return []
+    key = (kind, q.lower())
+    if key not in find_cache:
+        media = gql("query($s:String){Page(perPage:20){media(search:$s,type:" + kind.upper() + ",sort:SEARCH_MATCH){" + FIND_FIELDS + "}}}",
+                    {"s": q}, "Page")["media"]
+        find_cache[key] = [{"id": m["id"], "title": m["title"].get("english") or m["title"].get("romaji") or m["title"].get("native") or "",
+                            "ro": m["title"].get("romaji") or "", "jp": m["title"].get("native") or m["title"].get("romaji") or "",
+                            "format": m.get("format"), "status": m.get("status"), "year": (m.get("startDate") or {}).get("year"),
+                            "count": m.get("episodes") if kind == "anime" else m.get("chapters"), "volumes": m.get("volumes"),
+                            "country": m.get("countryOfOrigin"), "genres": (m.get("genres") or [])[:4], "adult": bool(m.get("isAdult")),
+                            "desc": tidy_description(m.get("description")), "cover": m["coverImage"]["medium"]} for m in media]
+        if len(find_cache) > 200:
+            find_cache.pop(next(iter(find_cache)))
+    return find_cache[key]
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -2089,6 +2114,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, {"version": VERSION})
         if self.path == "/api/update":
             return self.send(200, update_info())
+        if self.path.startswith("/api/find"):
+            q = parse_qs(urlparse(self.path).query)
+            kind = q.get("kind", [""])[0]
+            if kind not in ("anime", "manga"):
+                return self.send(400, {"error": "bad request"})
+            try:
+                return self.send(200, find_titles(kind, q.get("q", [""])[0]))
+            except Exception as e:
+                return self.send(503, {"error": str(e)})
         if self.path.startswith("/api/search"):
             q = parse_qs(urlparse(self.path).query).get("q", [""])[0]
             try:

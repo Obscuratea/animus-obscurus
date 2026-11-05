@@ -1,5 +1,16 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.6.1
+**New**
+- **A simpler menu.** The top bar is now **Anime | Manga | Friends**, and Friends turns the sliding pill gold. Under Anime you get **My anime, Discover, Calendar and Stats**; under Manga, **My manga, Discover and Stats**. Anime remembers the page you were last on.
+- **A bigger Add window.** The Add box at the top is gone. On **My anime** and **My manga** there is now an **Add** button next to Clear. It opens a window that searches AniList by English, romaji or Japanese names and shows up to 20 results with covers and a short synopsis. Add as many as you like without closing it. If nothing is found, you can still add the title as you typed it.
+- The Add button no longer shows on Discover, Calendar or Stats.
+- **Clear** now also empties the search box (anime and manga).
+
+**Fixes**
+- Manga you add by typing no longer sit on "Looking it up…" until you reload: the page checks again for the match, and a title AniList doesn't have says so and points you to Fix match.
+- "1 volumes" is now "1 volume".
+
 ## 1.6.0
 **New**
 - **Manga.** The Manga tab is now a real tracker, kept apart from your anime list (its own sheet, so nothing on your anime list changes). It has the same cards, covers from AniList, a 1-10 rating, notes, pinning and the same status tabs: **Reading**, On hold, **Plan to read**, Finished and Dropped.

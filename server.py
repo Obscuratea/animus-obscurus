@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from xml.sax.saxutils import escape
 
-VERSION = "1.5.2"
+VERSION = "1.6.0"
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
 MASCOT_EXTS = (".png", ".webp", ".gif", ".jpg", ".jpeg")
@@ -111,7 +111,8 @@ def cell(ref, col, text):
             f'<t xml:space="preserve">{escape(text)}</t></is></c>')
 
 
-def write_items(items):
+def write_items(items, path=None, headers=None):
+    path = path or XLSX
     rows = []
     for i, it in enumerate(items):
         r = FIRST_ROW + i
@@ -126,10 +127,10 @@ def write_items(items):
             f'{cell(f"I{r}", "I", "yes" if it["rec"] else "")}{cell(f"J{r}", "J", it["with"])}</row>'
         )
     last = FIRST_ROW + max(len(items), 1) - 1
-    with zipfile.ZipFile(XLSX) as z:
+    with zipfile.ZipFile(path) as z:
         xml = z.read(SHEET).decode("utf-8")
         head = re.search(r"<sheetData>(.*?)(?=<row r=\"3\"|</sheetData>)", xml, re.S).group(1)
-        for col, label in HEADERS.items():
+        for col, label in (headers or HEADERS).items():
             head = re.sub(rf'<c r="{col}2"[^>]*?(?:/>|>.*?</c>)',
                           f'<c r="{col}2" s="4" t="inlineStr"><is><t>{label}</t></is></c>',
                           head, count=1, flags=re.S)
@@ -139,14 +140,14 @@ def write_items(items):
         xml = re.sub(r'(<dataValidation [^>]*sqref=")C3:C\d+', rf"\g<1>C3:C{max(last, 1000)}", xml)
         xml = re.sub(r"(<formula1>).*?(</formula1>)",
                      "\\g<1>&quot;" + ",".join(STATUS_LABELS.values()) + "&quot;\\g<2>", xml)
-        fd, tmp = tempfile.mkstemp(suffix=".xlsx", dir=os.path.dirname(XLSX))
+        fd, tmp = tempfile.mkstemp(suffix=".xlsx", dir=os.path.dirname(path))
         os.close(fd)
         with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as out:
             for info in z.infolist():
                 data = xml.encode("utf-8") if info.filename == SHEET else z.read(info.filename)
                 out.writestr(info, data)
-    shutil.copy2(XLSX, XLSX + ".bak")
-    os.replace(tmp, XLSX)
+    shutil.copy2(path, path + ".bak")
+    os.replace(tmp, path)
 
 
 COVERS = os.path.join(ROOT, "data", "covers")
@@ -1665,6 +1666,8 @@ def make_backup():
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(XLSX, "Anime Watch List.xlsx")
+        if os.path.exists(MANGA_XLSX):
+            z.write(MANGA_XLSX, "Manga List.xlsx")
         for path, arc in ((SETTINGS, "settings.json"), (FRIENDS, "friends.json")):
             if os.path.exists(path):
                 z.write(path, arc)
@@ -1678,6 +1681,7 @@ def restore_backup(data):
         sheet = z.read("Anime Watch List.xlsx")
         settings = z.read("settings.json") if "settings.json" in z.namelist() else None
         friends = z.read("friends.json") if "friends.json" in z.namelist() else None
+        manga = z.read("Manga List.xlsx") if "Manga List.xlsx" in z.namelist() else None
     fd, tmp = tempfile.mkstemp(suffix=".xlsx", dir=os.path.dirname(XLSX))
     with os.fdopen(fd, "wb") as f:
         f.write(sheet)
@@ -1689,6 +1693,19 @@ def restore_backup(data):
     if os.path.exists(XLSX):
         shutil.copy2(XLSX, XLSX + ".bak-before-restore")
     os.replace(tmp, XLSX)
+    if manga is not None:
+        fd, tmp = tempfile.mkstemp(suffix=".xlsx", dir=os.path.dirname(MANGA_XLSX))
+        with os.fdopen(fd, "wb") as f:
+            f.write(manga)
+        try:
+            read_items(tmp)
+        except Exception:
+            os.remove(tmp)
+            raise ValueError("the manga list in that backup is damaged")
+        if os.path.exists(MANGA_XLSX):
+            shutil.copy2(MANGA_XLSX, MANGA_XLSX + ".bak-before-restore")
+        os.replace(tmp, MANGA_XLSX)
+        manga_state["wake"].set()
     if settings is not None:
         json.loads(settings)
         with open(SETTINGS, "wb") as f:
@@ -1698,6 +1715,252 @@ def restore_backup(data):
         with open(FRIENDS, "wb") as f:
             f.write(friends)
     return count
+
+
+# ---- Manga: a second list kept apart from the anime one (its own sheet and its own AniList cache).
+MANGA_XLSX = os.path.join(ROOT, "data", "Manga List.xlsx")
+MANGA_DB = os.path.join(ROOT, "data", "manga.json")   # list name -> what AniList says about the match
+MANGA_HEADERS = {**{k: v for k, v in HEADERS.items() if k not in "IJ"}, "B": "Chapter", "F": "Read Link"}
+MANGA_FIELDS = ("id format status chapters volumes isAdult countryOfOrigin averageScore popularity genres synonyms siteUrl "
+                "description(asHtml:false) startDate{year month day} title{romaji english native} coverImage{large extraLarge}")
+MANGA_V = 1
+manga_lock = threading.Lock()
+manga_state = {"wake": threading.Event(), "running": False, "done": 0, "total": 0, "error": ""}
+manga_search_cache = {}
+
+
+def ensure_manga():
+    if not os.path.exists(MANGA_XLSX) and os.path.exists(TEMPLATE):
+        os.makedirs(os.path.dirname(MANGA_XLSX), exist_ok=True)
+        shutil.copy2(TEMPLATE, MANGA_XLSX)
+        write_items([], MANGA_XLSX, MANGA_HEADERS)
+
+
+def manga_items():
+    ensure_manga()
+    return read_items(MANGA_XLSX)
+
+
+def manga_entry(m, manual=False):
+    """One AniList manga node as the dict both the list cards and Discover use."""
+    t = m["title"]
+    img = m.get("coverImage") or {}
+    return {"id": m["id"], "title": t.get("english") or t.get("romaji") or t.get("native") or "", "ro": t.get("romaji") or "",
+            "jp": t.get("native") or t.get("romaji") or "", "format": m.get("format"), "status": m.get("status"),
+            "chapters": m.get("chapters"), "volumes": m.get("volumes"), "country": m.get("countryOfOrigin"),
+            "score": m.get("averageScore"), "pop": m.get("popularity"), "genres": m.get("genres") or [],
+            "desc": tidy_description(m.get("description")), "cover": img.get("extraLarge") or img.get("large") or "",
+            "year": (m.get("startDate") or {}).get("year"), "url": m.get("siteUrl") or f"https://anilist.co/manga/{m['id']}",
+            "manual": manual, "at": time.time(), "v": MANGA_V}
+
+
+def load_manga():
+    try:
+        with open(MANGA_DB, encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, ValueError):
+        return {}
+
+
+def save_manga(db):
+    with open(MANGA_DB, "w", encoding="utf-8") as f:
+        json.dump(db, f, indent=1)
+
+
+def manga_stale(ent):
+    if ent.get("v") != MANGA_V:
+        return True
+    live = ent.get("status") in ("RELEASING", "NOT_YET_RELEASED", "HIATUS")
+    return time.time() - ent.get("at", 0) > (12 * 3600 if live else 30 * 24 * 3600)
+
+
+def manga_needs_match(ent):
+    if ent is None:
+        return True
+    return not ent.get("id") and not ent.get("manual") and time.time() - ent.get("at", 0) > NEG_RETRY
+
+
+def resolve_manga():
+    """Find the AniList manga behind each list name, then refresh details that have gone stale. Batched: a few calls for a whole list."""
+    items = manga_items()
+    names = [i["name"] for i in items]
+    with manga_lock:
+        db = load_manga()
+    todo = [n for n in names if manga_needs_match(db.get(n))]
+    manga_state.update(total=len(todo) + len(names), done=0)
+    search = lambda term: f"Page(perPage:8){{media(search:{json.dumps(term)},type:MANGA,sort:SEARCH_MATCH){{{MANGA_FIELDS}}}}}"
+    pending = [[n, search_terms(split_year(n)[0]), 0] for n in todo]
+    while pending:
+        batch, pending = pending[:20], pending[20:]
+        res = gql_batch(search, list(dict.fromkeys(p[1][p[2]] for p in batch)), 20)
+        updates = {}
+        for p in batch:
+            name, terms, i = p
+            cands = (res.get(terms[i]) or {}).get("media") or []
+            if not cands and i + 1 < len(terms):
+                p[2] += 1
+                pending.append(p)
+                continue
+            if cands:
+                c, _ = pick_candidate(name, "MANGA", cands)
+                updates[name] = manga_entry(c)
+            else:
+                updates[name] = {"id": None, "at": time.time(), "v": MANGA_V}
+            manga_state["done"] += 1
+        with manga_lock:
+            db = load_manga()
+            for name, ent in updates.items():
+                if not (db.get(name) or {}).get("manual"):   # picked by hand while we were busy
+                    db[name] = ent
+            save_manga(db)
+    with manga_lock:
+        db = load_manga()
+    stale = list(dict.fromkeys(e["id"] for n, e in db.items() if n in names and e.get("id") and manga_stale(e)))
+    for k in range(0, len(stale), 25):
+        got = gql_batch(lambda i: f"Media(id:{i}){{{MANGA_FIELDS}}}", stale[k:k + 25], 25)
+        with manga_lock:
+            db = load_manga()
+            for n, e in db.items():
+                m = got.get(e.get("id"))
+                if m and n in names:
+                    db[n] = manga_entry(m, e.get("manual", False))
+            save_manga(db)
+        manga_state["done"] += len(got)
+
+
+def manga_loop():
+    manga_state["wake"].set()
+    while True:
+        manga_state["wake"].wait(3600)
+        time.sleep(3)
+        manga_state["wake"].clear()
+        manga_state.update(running=True, error="")
+        try:
+            resolve_manga()
+        except Exception as e:
+            manga_state["error"] = str(e)
+            print("manga resolve failed:", e)
+        finally:
+            manga_state.update(running=False, done=0, total=0)
+
+
+def manga_known():
+    items = manga_items()
+    with manga_lock:
+        db = load_manga()
+    return {"info": {i["name"]: db[i["name"]] for i in items if db.get(i["name"])},
+            "resolve": {k: v for k, v in manga_state.items() if k != "wake"}}
+
+
+def manga_pick(name, media_id):
+    """The user's own choice of AniList entry for a name (kept; never replaced by the resolver)."""
+    m = gql("query($id:Int){Media(id:$id,type:MANGA){" + MANGA_FIELDS + "}}", {"id": int(media_id)})
+    with manga_lock:
+        db = load_manga()
+        db[name] = manga_entry(m, True)
+        save_manga(db)
+    return db[name]
+
+
+def manga_search(q):
+    q = q.strip().lower()
+    if len(q) < 2:
+        return []
+    if q not in manga_search_cache:
+        media = gql("query($s:String){Page(perPage:8){media(search:$s,type:MANGA,isAdult:false,sort:SEARCH_MATCH){"
+                    "id format startDate{year} title{romaji english} coverImage{medium}}}}", {"s": q}, "Page")["media"]
+        manga_search_cache[q] = [{"id": m["id"], "format": m["format"], "year": (m.get("startDate") or {}).get("year"),
+                                  "title": m["title"].get("english") or m["title"]["romaji"], "cover": m["coverImage"]["medium"]} for m in media]
+        if len(manga_search_cache) > 200:
+            manga_search_cache.pop(next(iter(manga_search_cache)))
+    return manga_search_cache[q]
+
+
+MANGA_SORTS = {"trending": "TRENDING_DESC", "popular": "POPULARITY_DESC", "top": "SCORE_DESC", "new": "START_DATE_DESC"}
+MANGA_ORIGINS = {"JP", "KR", "CN"}
+MANGA_GENRES = ["Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Horror", "Mahou Shoujo", "Mecha", "Music", "Mystery",
+                "Psychological", "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller"]
+manga_browse_cache = {}
+
+
+def manga_browse(sort, origin, genre, search, page):
+    """A page of AniList manga (sorted/filtered), cached for a while in memory."""
+    key = (sort, origin, genre, search, page)
+    hit = manga_browse_cache.get(key)
+    if hit and time.time() - hit[0] < 3 * 3600:
+        return hit[1]
+    args = ["type:MANGA", "isAdult:false", "format:MANGA", f"sort:{MANGA_SORTS[sort]}"]
+    if origin:
+        args.append(f"countryOfOrigin:{origin}")
+    if genre:
+        args.append(f"genre:{json.dumps(genre)}")
+    if search:
+        args.append(f"search:{json.dumps(search)}")
+    if sort == "top":
+        args.append("popularity_greater:5000")
+    if sort == "new":
+        args += ["status:RELEASING", "popularity_greater:1500"]
+    data = gql("query($page:Int){Page(page:$page,perPage:24){pageInfo{hasNextPage}media(" + ",".join(args) + "){" + MANGA_FIELDS + "}}}",
+               {"page": page}, "Page")
+    out = {"shows": [manga_entry(m) for m in data["media"]], "more": data["pageInfo"]["hasNextPage"]}
+    manga_browse_cache[key] = (time.time(), out)
+    if len(manga_browse_cache) > 100:
+        manga_browse_cache.pop(next(iter(manga_browse_cache)))
+    return out
+
+
+MANGA_RANDOM = {"anything": ("popularity_greater:500", 2500), "known": ("popularity_greater:15000", 5000),
+                "gems": ("averageScore_greater:74,popularity_greater:1500,popularity_lesser:15000", 4000)}
+manga_top = [0, 0.0]
+
+
+def manga_random(kind, n):
+    filt, tries = MANGA_RANDOM[kind]
+    if time.time() - manga_top[1] > 6 * 3600:
+        try:
+            manga_top[:] = [gql("{Media(type:MANGA,sort:ID_DESC){id}}", {})["id"], time.time()]
+        except Exception:
+            manga_top[0] = manga_top[0] or 150000
+            manga_top[1] = time.time()
+    query = ("query($ids:[Int]){Page(perPage:50){media(id_in:$ids,type:MANGA,isAdult:false,format:MANGA," + filt + "){" + MANGA_FIELDS + "}}}")
+    found = []
+    for _ in range(3):
+        ids = random.sample(range(1, manga_top[0] + 1), min(tries, manga_top[0]))
+        found = [m for m in gql(query, {"ids": ids}, "Page")["media"] if m["id"] not in {f["id"] for f in found}] + found
+        if len(found) >= n + 4:
+            break
+    random.shuffle(found)
+    return [manga_entry(m) for m in found[:n + 4]]
+
+
+def manga_save_items(body):
+    items = [{
+        "name": str(i["name"]).strip(),
+        "progress": re.sub(r"\D", "", str(i.get("progress", "")))[:6].lstrip("0"),
+        "status": i["status"] if i.get("status") in STATUS_LABELS else "not started",
+        "notes": str(i.get("notes", "")).strip(),
+        "cover": str(i.get("cover", "")).strip(),
+        "links": str(i.get("links", "")).strip(),
+        "rating": clean_rating(i.get("rating", "")),
+        "pinned": bool(i.get("pinned")),
+        "rec": False,
+        "with": "",
+    } for i in body if str(i.get("name", "")).strip()]
+    ensure_manga()
+    write_items(items, MANGA_XLSX, MANGA_HEADERS)
+    manga_state["wake"].set()
+    return len(items)
+
+
+def manga_rename(old, new):
+    with manga_lock:
+        db = load_manga()
+        ent = db.pop(old, None)
+        if ent and ent.get("manual"):
+            db[new] = ent
+        save_manga(db)
+    manga_state["wake"].set()
+
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1732,7 +1995,48 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def body_json(self):
+        return json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+
+    def manga_route(self, method):
+        """/api/manga/*: the manga list (kept apart from the anime one)."""
+        url = urlparse(self.path)
+        q = {k: v[0] for k, v in parse_qs(url.query).items()}
+        try:
+            if method == "GET" and url.path == "/api/manga/items":
+                return self.send(200, manga_items())
+            if method == "PUT" and url.path == "/api/manga/items":
+                return self.send(200, {"ok": True, "count": manga_save_items(self.body_json())})
+            if method == "GET" and url.path == "/api/manga/known":
+                return self.send(200, manga_known())
+            if method == "GET" and url.path == "/api/manga/search":
+                return self.send(200, manga_search(q.get("q", "")))
+            if method == "GET" and url.path == "/api/manga/browse":
+                sort, origin, genre = q.get("sort", "trending"), q.get("origin", ""), q.get("genre", "")
+                if sort not in MANGA_SORTS or origin not in MANGA_ORIGINS | {""} or genre not in MANGA_GENRES + [""]:
+                    return self.send(400, {"error": "bad request"})
+                return self.send(200, manga_browse(sort, origin, genre, q.get("search", "").strip()[:80], max(1, min(40, int(q.get("page", "1"))))))
+            if method == "GET" and url.path == "/api/manga/random":
+                kind = q.get("kind", "anything")
+                if kind not in MANGA_RANDOM:
+                    return self.send(400, {"error": "bad request"})
+                return self.send(200, {"shows": manga_random(kind, max(1, min(12, int(q.get("n", "6")))))})
+            if method == "POST" and url.path == "/api/manga/pick":
+                req = self.body_json()
+                return self.send(200, manga_pick(str(req["name"]), req["id"]))
+            if method == "POST" and url.path == "/api/manga/rename":
+                req = self.body_json()
+                manga_rename(str(req["from"]), str(req["to"]))
+                return self.send(200, {"ok": True})
+        except ValueError:
+            return self.send(400, {"error": "bad request"})
+        except Exception as e:
+            return self.send(503 if method == "GET" else 400, {"error": str(e)})
+        self.send(404, {"error": "not found"})
+
     def do_GET(self):
+        if self.path.startswith("/api/manga/"):
+            return self.manga_route("GET")
         if self.path == "/api/items":
             return self.send(200, read_items())
         if self.path == "/api/settings":
@@ -1893,6 +2197,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.path.startswith("/api/manga/"):
+            return self.manga_route("POST")
         # Re-point a title's cover at a different AniList search.
         if self.path == "/api/rename":
             # Titles key the caches, so a renamed show keeps its cover pick and season data.
@@ -2006,6 +2312,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         # The page owns the full list; each edit sends it back whole.
+        if self.path.startswith("/api/manga/"):
+            return self.manga_route("PUT")
         n = int(self.headers.get("Content-Length", 0))
         if self.path == "/api/settings":
             try:
@@ -2016,6 +2324,11 @@ class Handler(BaseHTTPRequestHandler):
                     if search and urlparse(search).scheme not in ("http", "https"):
                         raise ValueError("the site must be an http(s) address")
                     cur["search"] = search
+                if "msearch" in req:   # the manga site's search page ({q} for the title)
+                    msearch = str(req["msearch"]).strip()
+                    if msearch and urlparse(msearch).scheme not in ("http", "https"):
+                        raise ValueError("the site must be an http(s) address")
+                    cur["msearch"] = msearch
                 if "me" in req:
                     cur["me"] = str(req["me"]).strip()[:40]
                     relay_state["wake"].set()   # a shared list carries the name
@@ -2085,6 +2398,7 @@ if __name__ == "__main__":
     threading.Thread(target=update_loop, daemon=True).start()
     threading.Thread(target=relay_loop, daemon=True).start()
     threading.Thread(target=resolve_loop, daemon=True).start()
+    threading.Thread(target=manga_loop, daemon=True).start()
     print(f"Animus Obscurus is running on http://127.0.0.1:{port}  (close this window to stop it)")
     if "--open" in sys.argv:
         webbrowser.open(f"http://127.0.0.1:{port}")

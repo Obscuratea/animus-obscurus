@@ -1,5 +1,16 @@
 # Animus Obscurus: what's new since your first copy
 
+## 1.6.0
+**New**
+- **Manga.** The Manga tab is now a real tracker, kept apart from your anime list (its own sheet, so nothing on your anime list changes). It has the same cards, covers from AniList, a 1-10 rating, notes, pinning and the same status tabs: **Reading**, On hold, **Plan to read**, Finished and Dropped.
+- **Chapters instead of episodes.** Each card has **−**, a chapter box you can type in, and **+**. Reading a chapter starts the title, and reaching the last chapter of a finished series marks it Finished.
+- **Read button.** ▶ opens the next chapter. Paste one chapter link and the number is swapped in for the others, or set a manga site (gear → **Manga site**) and the title and ▶ search it for you.
+- **Manga Discover:** **Trending**, **Most popular**, **Top rated**, **New & ongoing** and **Random** (ROLL, with Anything, Hidden gems and Well known). Filter by where it's from (manga, manhwa or manhua) and by genre, search AniList, and add a title in one click.
+- **Manga Stats:** manga tracked, chapters read, finished, average rating, top genres and how you rate.
+- **Add box:** in the Manga tab it searches AniList for manga as you type.
+- **Back up and Restore** now include your manga list.
+- A new logo (a book with a play button) in the header.
+
 ## 1.5.2
 **New**
 - **Discover has three modes:** Season, Tonight and Random.

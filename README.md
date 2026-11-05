@@ -6,14 +6,15 @@ A personal anime tracker that runs on your own computer. No account, no cloud: y
 - **Airing tab, covers, ratings and genres** from AniList (cached on disk, so MyAnimeList's Jikan API is barely touched).
 - **Discover** what's airing this season (or any past or upcoming one) and add it to your list in one click.
 - **Share recommendations with friends** with a short code (no accounts, nothing but your 👍 picks is shared), or as a small file. Compare lists with a friend.
+- **A manga tracker too.** Its own list (chapters, covers, ratings), plus manga Discover and Stats.
 - **Import your MyAnimeList or Anime-Planet** export file.
 - **Themes from any show's cover**, backups, and **one-click updates** from GitHub Releases.
 
 ## Latest release features
 
-![Animus Obscurus v1.5.0: one card per show, cards that fill your screen, smarter imports](docs/latest-release.png)
+![Animus Obscurus v1.6.0: a manga tracker with its own list, Discover and Stats](docs/latest-release.png)
 
-**[Get v1.5.0](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
+**[Get v1.6.0](../../releases/latest)**. The full list of changes is in [CHANGELOG.md](CHANGELOG.md), and in the app under the gear menu → What's new.
 
 ## Run it
 
@@ -41,3 +42,4 @@ Animus Obscurus is free. If it's useful to you and you'd like to help fund more 
 
 - Ko-fi: https://ko-fi.com/obscuratea
 - Patreon: https://patreon.com/Obscuratea
+- Discord: https://discord.gg/uqV26sCQFq
